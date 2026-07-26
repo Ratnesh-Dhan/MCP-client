@@ -1,3 +1,5 @@
+import { Dispatch, SetStateAction } from "react";
+
 export type Message = {
     id: string;
     role: "user" | "assistant";
@@ -7,3 +9,9 @@ export type Message = {
   export interface ChatMessagesProps {
     messages: Message[];
   }
+
+  export type TextBoxProps = {
+    setChat: Dispatch<SetStateAction<ChatMessagesProps>>;
+    chat: ChatMessagesProps;
+  };
+  

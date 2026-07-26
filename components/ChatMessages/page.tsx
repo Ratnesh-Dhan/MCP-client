@@ -1,10 +1,10 @@
 "use client";
-
+import ReactMarkDown from "react-markdown";
 import { ChatMessagesProps } from "@/types/allTypes";
 
 export default function ChatMessages({ messages }: ChatMessagesProps) {
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 w-full overflow-y-auto">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8">
         {messages.map((message) => (
           <div
@@ -20,7 +20,7 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
                   : "bg-transparent text-zinc-100"
               }`}
             >
-              {message.content}
+              <ReactMarkDown>{message.content}</ReactMarkDown>
             </div>
           </div>
         ))}

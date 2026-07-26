@@ -2,12 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
-import { ChatMessagesProps, Message } from "@/types/allTypes";
+import { Message, TextBoxProps } from "@/types/allTypes";
 
-export default function TextBox(
-  setChat: React.Dispatch<React.SetStateAction<ChatMessagesProps>>,
-) {
-  const [message, setMessage] = useState<Message>();
+export default function TextBox({ setChat, chat }: TextBoxProps) {
   const [text, setText] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -17,18 +14,44 @@ export default function TextBox(
 
     textarea.style.height = "0px";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
-  }, [message]);
+  }, [text]);
 
-  function sendMessage() {
+  const sendMessage = async () => {
     if (!text?.trim()) return;
 
-    console.log(message);
-    setMessage({ id: crypto.randomUUID(), role: "user", content: text });
+    const message: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: text,
+    };
 
+    setChat((prev) => ({ ...prev, messages: [...prev.messages, message] }));
+    setText("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "0px";
     }
-  }
+    console.log("this is chat ", chat);
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: [...chat.messages, message],
+      }),
+    });
+    const data = await res.json();
+    console.log("this is data, ", data);
+    // const assistantMessage: Message = {
+    //   id: crypto.randomUUID(),
+    //   role: "assistant",
+    //   content: data.message.content,
+    // };
+    // setChat((prev) => ({
+    //   ...prev,
+    //   messages: [...prev.messages, assistantMessage],
+    // }));
+  };
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -45,7 +68,7 @@ export default function TextBox(
       <textarea
         ref={textareaRef}
         rows={1}
-        value={message?.content}
+        value={text}
         placeholder="Message Local AI..."
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -72,7 +95,7 @@ export default function TextBox(
             hover:bg-zinc-200
             disabled:opacity-40
           "
-          disabled={!message?.content.trim()}
+          disabled={!text.trim()}
         >
           <ArrowUp size={18} />
         </button>

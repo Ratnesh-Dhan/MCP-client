@@ -6,13 +6,13 @@ import { useState } from "react";
 
 export default function Home() {
   const [chat, setChat] = useState<ChatMessagesProps>({
-    messages: [{ id: "1", role: "user", content: "Hello!" }],
+    messages: [],
   });
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+    <div className="flex flex-col flex-1 justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex flex-1 w-full max-w-6xl flex-col items-center justify-between py-20 px-16 bg-white dark:bg-black sm:items-start">
         <ChatMessages messages={chat.messages} />
-        <TextBox setChat={setChat} />
+        <TextBox setChat={setChat} chat={chat} />
       </main>
     </div>
   );
