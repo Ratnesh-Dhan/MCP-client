@@ -10,9 +10,10 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "richardyoung/qwen2.5-7b-instruct-abliterated:latest", // change to your model
+        // model: "richardyoung/qwen2.5-7b-instruct-abliterated:latest", // change to your model
+        model: "nemotron-mini:4b",
         messages,
-        stream: false,
+        stream: true,
       }),
     });
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       { error: "Something went wrong." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,5 +1,5 @@
 "use client";
-
+// https://medium.com/@jonigl/using-ollama-with-typescript-a-simple-guide-20f5e8d3827c
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { Message, TextBoxProps } from "@/types/allTypes";
@@ -16,40 +16,49 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
   }, [text]);
 
-  const sendMessage = async () => {
-    if (!text?.trim()) return;
-
+  const messageBuilder = (text: string, role: boolean) => {
     const message: Message = {
       id: crypto.randomUUID(),
-      role: "user",
+      role: role ? "user" : "assistant",
       content: text,
     };
 
-    setChat((prev) => ({ ...prev, messages: [...prev.messages, message] }));
+    return message;
+  };
+
+  const sendMessage = async () => {
+    if (!text?.trim()) return;
+
+    setChat((prev) => ({
+      ...prev,
+      messages: [...prev.messages, messageBuilder(text, true)],
+    }));
+    const text1: string = text;
     setText("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "0px";
     }
-    console.log("this is chat ", chat);
+    console.log("this is chat ", text1);
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
+      // body: JSON.stringify({
+      //   messages: [...chat.messages, messageBuilder(text, true)],
+      // }),
       body: JSON.stringify({
-        messages: [...chat.messages, message],
+        message: text1,
       }),
     });
-    const data = await res.json();
-    console.log("this is data, ", data);
-    // const assistantMessage: Message = {
-    //   id: crypto.randomUUID(),
-    //   role: "assistant",
-    //   content: data.message.content,
-    // };
+    // const data = await res.json();
+    // console.log("this is data, ", data["message"]);
     // setChat((prev) => ({
     //   ...prev,
-    //   messages: [...prev.messages, assistantMessage],
+    //   messages: [
+    //     ...prev.messages,
+    //     messageBuilder(data["message"]["content"], false),
+    //   ],
     // }));
   };
 
