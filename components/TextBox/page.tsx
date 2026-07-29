@@ -29,37 +29,63 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
   const sendMessage = async () => {
     if (!text?.trim()) return;
 
+    const userMessage = messageBuilder(text, true);
+
+    // Build the full conversation
+    const messages = [...chat.messages, userMessage];
+
+    // Update the UI immediately
     setChat((prev) => ({
       ...prev,
-      messages: [...prev.messages, messageBuilder(text, true)],
+      messages,
     }));
-    const text1: string = text;
+    console.log("chat : ", chat.messages);
     setText("");
+
     if (textareaRef.current) {
       textareaRef.current.style.height = "0px";
     }
-    console.log("this is chat ", text1);
-    const res = await fetch("/api/chat", {
+
+    const res = await fetch("/api/ollamaChat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      // body: JSON.stringify({
-      //   messages: [...chat.messages, messageBuilder(text, true)],
-      // }),
       body: JSON.stringify({
-        message: text1,
+        model: "nemotron-mini:4b",
+        messages,
       }),
     });
-    // const data = await res.json();
-    // console.log("this is data, ", data["message"]);
-    // setChat((prev) => ({
-    //   ...prev,
-    //   messages: [
-    //     ...prev.messages,
-    //     messageBuilder(data["message"]["content"], false),
-    //   ],
-    // }));
+
+    if (!res.body) return;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    let assistantText: string = "";
+    const id = crypto.randomUUID();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      assistantText += decoder.decode(value, { stream: true });
+      setChat((prev) => {
+        const messages = [...prev.messages];
+        const lastIndex = messages.length - 1;
+        const lastMessage = messages[lastIndex];
+
+        if (lastMessage?.id === id) {
+          messages[lastIndex] = { ...lastMessage, content: assistantText };
+        } else {
+          messages.push({
+            id,
+            role: "assistant",
+            content: assistantText,
+          });
+        }
+
+        return { ...prev, messages };
+      });
+    }
   };
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -72,7 +98,7 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
   return (
     <div
       onClick={() => textareaRef.current?.focus()}
-      className="w-full max-w-4xl rounded-3xl border border-zinc-700 bg-zinc-900 px-4 py-3"
+      className="absolute translate-x-15 bottom-10 w-full max-w-4xl rounded-3xl border border-zinc-700 bg-zinc-900 px-4 py-3"
     >
       <textarea
         ref={textareaRef}
@@ -82,14 +108,14 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
         className="
-          w-full
-          resize-none
-          overflow-y-auto
-          bg-transparent
-          text-white
-          placeholder:text-zinc-500
-          outline-none
-          max-h-[200px]
+        w-full
+        resize-none
+        overflow-y-auto
+        bg-transparent
+        text-white
+        placeholder:text-zinc-500
+        outline-none
+        max-h-[200px]
         "
       />
 
@@ -97,13 +123,13 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
         <button
           onClick={sendMessage}
           className="
-            flex h-9 w-9 items-center justify-center
+          flex h-9 w-9 items-center justify-center
             rounded-full
             bg-white
             text-black
             hover:bg-zinc-200
             disabled:opacity-40
-          "
+            "
           disabled={!text.trim()}
         >
           <ArrowUp size={18} />

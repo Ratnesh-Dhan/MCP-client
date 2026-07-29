@@ -4,7 +4,7 @@ import { ChatMessagesProps } from "@/types/allTypes";
 
 export default function ChatMessages({ messages }: ChatMessagesProps) {
   return (
-    <div className="flex-1 w-full overflow-y-auto">
+    <div className="flex-1 w-full overflow-y-auto max-h-[640px]">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8">
         {messages.map((message) => (
           <div

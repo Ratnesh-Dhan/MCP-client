@@ -1,29 +1,41 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Ollama } from "ollama";
-
-const ollama = new Ollama();
+import { NextRequest } from "next/server";
+import { chat } from "@/services/ollama";
 
 export async function POST(req: NextRequest) {
-  try {
-    const { message } = await req.json();
+  const raw = await req.text();
 
-    const stream = await ollama.generate({
-      model: "nemotron-mini:4b",
-      prompt: message,
-      stream: true,
-    });
+  console.log("RAW BODY:");
+  console.log(raw);
 
-    for await (const chunk of stream) {
-      console.log(chunk);
-      process.stdout.write(chunk.response);
-    }
-    console.log();
-  } catch (err) {
-    console.error(err);
+  const { model, messages } = JSON.parse(raw);
+  console.log("This is messages");
+  console.log(messages);
+  console.log("This is messages");
+  // const { model, messages } = await req.json();
+  const ollamaStream = await chat({
+    messages,
+    model,
+  });
 
-    return NextResponse.json(
-      { error: "Something went wrong." },
-      { status: 500 },
-    );
-  }
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of ollamaStream) {
+          controller.enqueue(encoder.encode(chunk.message.content));
+        }
+        controller.close();
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
