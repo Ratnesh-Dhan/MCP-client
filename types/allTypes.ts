@@ -19,3 +19,8 @@ export type TextBoxProps = {
   setChat: Dispatch<SetStateAction<ChatMessagesProps>>;
   chat: ChatMessagesProps;
 };
+
+export interface SettingsStore {
+  model: string;
+  setModel: (model: string) => void;
+}

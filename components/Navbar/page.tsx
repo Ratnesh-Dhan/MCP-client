@@ -12,7 +12,7 @@ const Navbar = () => {
           <Link className="mr-2 md:mr-4" href="/">
             Home
           </Link>
-          <Link href="/settings">Settings</Link>
+          <Link href="/Settings">Settings</Link>
         </div>
       </div>
     </div>

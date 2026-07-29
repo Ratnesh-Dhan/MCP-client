@@ -1,12 +1,18 @@
 "use client";
 // https://medium.com/@jonigl/using-ollama-with-typescript-a-simple-guide-20f5e8d3827c
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, CircleStop } from "lucide-react";
 import { Message, TextBoxProps } from "@/types/allTypes";
+import { useSettingsStore } from "@/store/settings";
 
 export default function TextBox({ setChat, chat }: TextBoxProps) {
-  const [text, setText] = useState<string>("");
+  const abortController = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [text, setText] = useState<string>("");
+  const [enableAbort, setEnableAbort] = useState<boolean>(false);
+
+  const { model } = useSettingsStore();
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -29,62 +35,80 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
   const sendMessage = async () => {
     if (!text?.trim()) return;
 
-    const userMessage = messageBuilder(text, true);
+    // abort controller setting up
+    try {
+      const controller = new AbortController();
+      abortController.current = controller;
 
-    // Build the full conversation
-    const messages = [...chat.messages, userMessage];
+      const userMessage = messageBuilder(text, true);
 
-    // Update the UI immediately
-    setChat((prev) => ({
-      ...prev,
-      messages,
-    }));
-    console.log("chat : ", chat.messages);
-    setText("");
+      // Build the full conversation
+      const messages = [...chat.messages, userMessage];
 
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "0px";
-    }
-
-    const res = await fetch("/api/ollamaChat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "nemotron-mini:4b",
+      // Update the UI immediately
+      setChat((prev) => ({
+        ...prev,
         messages,
-      }),
-    });
+      }));
+      console.log("chat : ", chat.messages);
+      setText("");
 
-    if (!res.body) return;
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "0px";
+      }
 
-    let assistantText: string = "";
-    const id = crypto.randomUUID();
+      const res = await fetch("/api/ollamaChat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          messages,
+        }),
+        signal: controller.signal,
+      });
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      assistantText += decoder.decode(value, { stream: true });
-      setChat((prev) => {
-        const messages = [...prev.messages];
-        const lastIndex = messages.length - 1;
-        const lastMessage = messages[lastIndex];
+      if (!res.body) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
 
-        if (lastMessage?.id === id) {
-          messages[lastIndex] = { ...lastMessage, content: assistantText };
-        } else {
-          messages.push({
-            id,
-            role: "assistant",
-            content: assistantText,
+      let assistantText: string = "";
+      const id = crypto.randomUUID();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          assistantText += decoder.decode(value, { stream: true });
+          // enable abort state
+          setEnableAbort(true);
+          setChat((prev) => {
+            const messages = [...prev.messages];
+            const lastIndex = messages.length - 1;
+            const lastMessage = messages[lastIndex];
+
+            if (lastMessage?.id === id) {
+              messages[lastIndex] = { ...lastMessage, content: assistantText };
+            } else {
+              messages.push({
+                id,
+                role: "assistant",
+                content: assistantText,
+              });
+            }
+
+            return { ...prev, messages };
           });
         }
-
-        return { ...prev, messages };
-      });
+      } finally {
+        setEnableAbort(false);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        console.log("Generation stopped");
+        return;
+      }
+      console.log(err);
     }
   };
 
@@ -95,10 +119,14 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
     }
   }
 
+  const stopGeneration = () => {
+    abortController.current?.abort();
+  };
+
   return (
     <div
       onClick={() => textareaRef.current?.focus()}
-      className="absolute translate-x-15 bottom-10 w-full max-w-4xl rounded-3xl border border-zinc-700 bg-zinc-900 px-4 py-3"
+      className="absolute translate-x-0 md:-translate-x-10 lg:translate-x-15 bottom-10 w-full max-w-4xl rounded-3xl border border-zinc-700 bg-zinc-900 px-4 py-3"
     >
       <textarea
         ref={textareaRef}
@@ -120,9 +148,10 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
       />
 
       <div className="mt-3 flex justify-end">
-        <button
-          onClick={sendMessage}
-          className="
+        {enableAbort ? (
+          <button
+            onClick={stopGeneration}
+            className="
           flex h-9 w-9 items-center justify-center
             rounded-full
             bg-white
@@ -130,10 +159,25 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
             hover:bg-zinc-200
             disabled:opacity-40
             "
-          disabled={!text.trim()}
-        >
-          <ArrowUp size={18} />
-        </button>
+          >
+            <CircleStop size={18} />
+          </button>
+        ) : (
+          <button
+            onClick={sendMessage}
+            className="
+          flex h-9 w-9 items-center justify-center
+            rounded-full
+            bg-white
+            text-black
+            hover:bg-zinc-200
+            disabled:opacity-40
+            "
+            disabled={!text.trim()}
+          >
+            <ArrowUp size={18} />
+          </button>
+        )}
       </div>
     </div>
   );
