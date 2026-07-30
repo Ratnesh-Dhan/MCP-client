@@ -19,7 +19,7 @@ export default function ModelSelect() {
 
         setModels(data.models);
 
-        if (data.models.length > 0) {
+        if (data.models.length > 0 && model === "") {
           setModel(data.models[0].model);
         }
       } catch (err) {

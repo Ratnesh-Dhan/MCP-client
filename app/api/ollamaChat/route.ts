@@ -4,13 +4,9 @@ import { chat } from "@/services/ollama";
 export async function POST(req: NextRequest) {
   const raw = await req.text();
 
-  console.log("RAW BODY:");
-  console.log(raw);
 
   const { model, messages } = JSON.parse(raw);
-  console.log("This is messages");
-  console.log(messages);
-  console.log("This is messages");
+  
   // const { model, messages } = await req.json();
   const ollamaStream = await chat({
     messages,
