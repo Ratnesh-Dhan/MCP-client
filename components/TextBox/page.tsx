@@ -132,7 +132,7 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
         ref={textareaRef}
         rows={1}
         value={text}
-        placeholder="Message Local AI..."
+        placeholder="Chat with Agent..."
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
         className="
