@@ -3,8 +3,11 @@ import { callMCPTool } from "@/services/mcp";
 
 export async function POST(req: NextRequest) {
   try {
-    const { server, tools, argumetns: args } = await req.json();
-    const result = await callMCPTool(server, tools, args ?? {});
+    const { server, tool, arguments: args } = await req.json();
+    console.log("Server: ", server);
+    console.log("Tools: ", tool);
+    console.log("Arguments: ", args);
+    const result = await callMCPTool(server, tool, args ?? {});
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

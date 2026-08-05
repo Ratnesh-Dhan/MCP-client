@@ -4,6 +4,7 @@ import { listMCPTools } from "@/services/mcp";
 export async function GET(req: NextRequest) {
   try {
     const server = req.nextUrl.searchParams.get("server");
+    console.log("Server: ", server);
 
     if (!server) {
       return NextResponse.json(

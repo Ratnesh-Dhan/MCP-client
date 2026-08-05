@@ -4,8 +4,9 @@ export async function connectMCP(
   name: string,
   command: string,
   args: string[],
+  cwd?: string,
 ) {
-  return mcpManager.connect(name, command, args);
+  return mcpManager.connect(name, command, args, cwd);
 }
 
 export async function listMCPTools(server: string) {

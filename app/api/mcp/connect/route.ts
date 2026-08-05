@@ -3,9 +3,9 @@ import { connectMCP } from "@/services/mcp";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, command, args } = await req.json();
+    const { name, command, args, cwd } = await req.json();
 
-    await connectMCP(name, command, args ?? []);
+    await connectMCP(name, command, args ?? [], cwd);
 
     return NextResponse.json({ success: true, server: name });
   } catch (error) {

@@ -1,6 +1,6 @@
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio";
 
-export const trnasport = new StdioClientTransport({
+export const transport = new StdioClientTransport({
   command: "pnpm",
   args: ["start"],
 });
