@@ -99,4 +99,11 @@ class MCPManager {
   }
 }
 
-export const mcpManager = new MCPManager();
+// export const mcpManager = new MCPManager();
+const globalForMCP = globalThis as unknown as {
+  mcpManager?: MCPManager;
+};
+
+export const mcpManager = globalForMCP.mcpManager ?? new MCPManager();
+
+globalForMCP.mcpManager = mcpManager;
