@@ -1,5 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { client } from "./client";
 
 type MCPConnection = {
   client: Client;
@@ -20,10 +21,10 @@ class MCPManager {
       args,
     });
 
-    const client = new Client({
-      name: "local-mcp-client",
-      version: "0.1.0",
-    });
+    // const client = new Client({
+    //   name: "local-mcp-client",
+    //   version: "0.1.0",
+    // });
 
     await client.connect(transport);
 
