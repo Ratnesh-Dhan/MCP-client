@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { client } from "./client";
+import { client } from "./mcp/client.js";
 
 type MCPConnection = {
   client: Client;
@@ -99,11 +99,4 @@ class MCPManager {
   }
 }
 
-// export const mcpManager = new MCPManager();
-const globalForMCP = globalThis as unknown as {
-  mcpManager?: MCPManager;
-};
-
-export const mcpManager = globalForMCP.mcpManager ?? new MCPManager();
-
-globalForMCP.mcpManager = mcpManager;
+export const mcpManager = new MCPManager();
