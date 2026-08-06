@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
 
     const response = await runAgent(model, messages, server);
 
-    console.log("OLLAMA RESPONSE: ", JSON.stringify(response, null, 2));
+    // console.log("OLLAMA RESPONSE: ", JSON.stringify(response, null, 2));
 
     return NextResponse.json(response);
   } catch (error) {
