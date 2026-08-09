@@ -16,7 +16,6 @@ export default function ModelSelect() {
       try {
         const res = await fetch("/api/models");
         const data = await res.json();
-
         setModels(data.models);
 
         if (data.models.length > 0 && model === "") {

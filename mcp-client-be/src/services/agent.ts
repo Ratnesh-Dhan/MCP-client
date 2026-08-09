@@ -1,9 +1,9 @@
 import type { Message, Tool } from "ollama";
-import { ollama } from "@/lib/ollama";
-import { callMCPTool, listMCPTools } from "./mcp";
-import { convertSegmentPathToStaticExportFilename } from "next/dist/shared/lib/segment-cache/segment-value-encoding";
+import { ollama } from "../lib/ollama.js";
+import { listMCPTools, callMCPTool } from "./mcp.js";
+import { MCPContent } from "../types/allTypes.js";
 
-const getOllamaTools = async (serverName: string): Promise<Tool[]> => {
+export async function getOllamaTools(serverName: string): Promise<Tool[]> {
   const mcpTools = await listMCPTools(serverName);
 
   return mcpTools.map((tool) => ({
@@ -14,70 +14,82 @@ const getOllamaTools = async (serverName: string): Promise<Tool[]> => {
       parameters: tool.inputSchema as Tool["function"]["parameters"],
     },
   }));
-};
+}
 
-export const runAgent = async (
+export async function runAgent(
   model: string,
   messages: Message[],
   serverName: string,
-) => {
-  // get tools from MCP server
+) {
   const tools = await getOllamaTools(serverName);
-
-  // Original array wont be disturbed
   const conversation: Message[] = [
     {
       role: "system",
       content:
-        "You are an assistant with access to tools. When a tool result is provided, use that result to answer the user's request.",
+        "You are an AI assistant with access to external tools. Use tools when they are useful to answer the user's request. After receiving a tool result, use it to answer the user.",
     },
     ...messages,
   ];
 
-  // Ask Ollama
-  const response = await ollama.chat({
-    model,
-    messages: conversation,
-    tools,
-    stream: false,
-  });
+  const MAX_ITERATIONS = 10;
 
-  conversation.push(response.message);
-  const toolCalls = response.message.tool_calls;
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    console.log(`Agent Iteration ${i + 1} of ${MAX_ITERATIONS}`);
 
-  // No tools requested -> normal response
-  if (!toolCalls?.length) return response;
-
-  // Execute request tools
-  for (const toolCall of toolCalls) {
-    const toolName = toolCall.function.name;
-    const args = toolCall.function.arguments;
-
-    console.log("Calling MCP tool:", toolName);
-    console.log("Arguments:", args);
-
-    const result = await callMCPTool(serverName, toolName, args);
-    console.log("MCP result: ", result);
-
-    conversation.push({
-      role: "tool",
-      content: JSON.stringify(result.content ?? result),
-      //   tool_name: toolName, // If typescript complains, then remove this line
-    });
-    console.log("tool content: ", result);
-
-    console.log(
-      "CONVERSATION BEFORE FINAL:",
-      JSON.stringify(conversation, null, 2),
-    );
-
-    // Giving the tool result back to Ollama
-    const finalResponse = await ollama.chat({
+    const response = await ollama.chat({
       model,
       messages: conversation,
-      //   tools,
+      tools,
       stream: false,
     });
-    return finalResponse;
+
+    console.log("Ollama response: ", JSON.stringify(response.message, null, 2));
+
+    // Add Ollama's response to conversation
+    conversation.push(response.message);
+
+    const toolCalls = response.message.tool_calls;
+
+    // No tool call - final answer.
+    if (!toolCalls?.length) return response;
+
+    // Execute every tool requested by Ollama.
+    for (const toolCall of toolCalls) {
+      const toolName = toolCall.function.name;
+      const args = toolCall.function.arguments;
+      console.log("MCP TOOL: ", toolName);
+      console.log("MCP ARGS: ", args);
+
+      try {
+        const result = await callMCPTool(serverName, toolName, args);
+        console.log("MCP RESULT: ", JSON.stringify(result, null, 2));
+
+        const content = result.content as MCPContent[];
+        const toolContent = content
+          .filter(
+            (item): item is MCPContent & { text: string } =>
+              item.type === "text" && typeof item.text === "string",
+          )
+          .map((item) => item.text)
+          .join("\n");
+
+        conversation.push({
+          role: "tool",
+          content: toolContent,
+          tool_name: toolName,
+        });
+      } catch (error) {
+        console.error(`Tool "${toolName}" failed:`, error);
+
+        conversation.push({
+          role: "tool",
+          content: `Tool execution failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+          tool_name: toolName,
+        });
+      }
+    }
   }
-};
+  throw new Error(`Agent exceeded maximum iterations (${MAX_ITERATIONS})`);
+}

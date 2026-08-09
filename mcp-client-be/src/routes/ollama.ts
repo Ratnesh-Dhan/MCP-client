@@ -1,71 +1,74 @@
-import { Router } from 'express';
+import { Router } from "express";
 
-import { listModles, showModel, chat } from '../services/ollama.js';
+import { listModles, showModel, chat } from "../services/ollama.js";
 
 const OllamaRouter = Router();
 
-OllamaRouter.get('/list', async (req, res)=> {
-    try {
-        const models = await listModles();
-        res.status(200).json(models);
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            error: error instanceof Error ? error.message : "Error while listing models.",
-        });
+OllamaRouter.get("/models", async (req, res) => {
+  try {
+    const models = await listModles();
+    res.status(200).json(models);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : "Error while listing models.",
+    });
+  }
+});
+
+OllamaRouter.post("/show", async (req, res) => {
+  try {
+    const { model } = req.body;
+    const result = await showModel(model);
+    res.status(200).json({ success: true, result: result });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : "Error while showing model.",
+    });
+  }
+});
+
+OllamaRouter.post("/chat", async (req, res) => {
+  try {
+    const { messages, model } = req.body;
+    const { chatOllama, stream } = await chat({ messages, model });
+
+    let finished = false;
+
+    req.on("close", () => {
+      if (finished) return;
+      console.log("Client disconnected → aborting Ollama");
+      chatOllama.abort();
+    });
+
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache");
+
+    for await (const chunk of stream) {
+      res.write(chunk.message.content);
     }
-})
-
-OllamaRouter.post('/show', async (req, res)=> {
-    try {
-        const { model } = req.body;
-        const result = await showModel(model);
-        res.status(200).json({ success: true, result: result });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            error: error instanceof Error ? error.message : "Error while showing model."
-        })
+    finished = true;
+    res.end();
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      console.log("Ollama generation aborted");
+      return;
     }
+    console.error("Ollama chat error: ", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error while chatting with ollama.",
+      });
+    } else {
+      res.end();
     }
-)
-
-OllamaRouter.post("/chat", async (req, res)=> {
-    try {
-        const { messages, model } = req.body;
-        const {chatOllama, stream} = await chat({ messages, model});
-
-        let finished = false;
-
-        req.on("close", ()=> {
-            if (finished) return;
-            console.log("Client disconnected → aborting Ollama");
-            chatOllama.abort();            
-        });
-
-        res.setHeader("Content-Type", "text/plain; charset=utf-8");
-        res.setHeader("Cache-Control", "no-cache");
-
-        for await (const chunk of stream) {
-            res.write(chunk.message.content);
-        }
-        finished = true;
-        res.end();
-
-    } catch(error) {
-        if (error instanceof Error && error.name === "AbortError") {
-            console.log("Ollama generation aborted");
-            return;
-        }
-        console.error("Ollama chat error: ", error);
-        if (!res.headersSent) {
-            res.status(500).json({
-                error: error instanceof Error ? error.message : "Error while chatting with ollama."
-            })
-        } else {
-            res.end();
-        }
-    }
+  }
 });
 
 export default OllamaRouter;
