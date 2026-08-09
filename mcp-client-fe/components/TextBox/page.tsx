@@ -36,10 +36,12 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
     if (!text?.trim()) return;
 
     // abort controller setting up
-    try {
-      const controller = new AbortController();
-      abortController.current = controller;
+    const controller = new AbortController();
+    abortController.current = controller;
+    // enable abort state
+    setEnableAbort(true);
 
+    try {
       const userMessage = messageBuilder(text, true);
 
       // Build the full conversation
@@ -50,7 +52,6 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
         ...prev,
         messages,
       }));
-      console.log("chat : ", chat.messages);
       setText("");
 
       if (textareaRef.current) {
@@ -59,9 +60,6 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
 
       const res = await fetch("/api/ollamaChat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           model: model,
           messages,
@@ -80,8 +78,7 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
           const { done, value } = await reader.read();
           if (done) break;
           assistantText += decoder.decode(value, { stream: true });
-          // enable abort state
-          setEnableAbort(true);
+
           setChat((prev) => {
             const messages = [...prev.messages];
             const lastIndex = messages.length - 1;

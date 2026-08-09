@@ -1,37 +1,63 @@
 import { NextRequest } from "next/server";
-import { chat } from "@/services/ollama";
 
 export async function POST(req: NextRequest) {
-  const raw = await req.text();
+  try {
+    const { model, messages } = await req.json();
 
+    const res = await fetch("http://localhost:4000/api/ollama/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+      }),
+      signal: req.signal,
+    });
 
-  const { model, messages } = JSON.parse(raw);
-  
-  // const { model, messages } = await req.json();
-  const ollamaStream = await chat({
-    messages,
-    model,
-  });
+    if (!res.ok) {
+      const errorText = await res.text();
+      return new Response(errorText, {
+        status: res.status,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of ollamaStream) {
-          controller.enqueue(encoder.encode(chunk.message.content));
-        }
-        controller.close();
-      } catch (err) {
-        controller.error(err);
-      }
-    },
-  });
+    if (!res.body) {
+      return new Response(
+        JSON.stringify({ error: "Empty response from backend" }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+    // Passing the stream through.
+    return new Response(res.body, {
+      status: res.status,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      console.log("Ollama generation stopped");
+      return new Response(null, { status: 499 });
+    }
+    console.log("Ollama proxy error: ", error);
+
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Ollama request failed",
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+  }
 }
