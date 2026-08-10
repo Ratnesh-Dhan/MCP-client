@@ -6,8 +6,8 @@ import React from "react";
 const Navbar = () => {
   const { model } = useSettingsStore();
   return (
-    <div className="border px-5">
-      <div className="flex justify-between items-center gap-6 text-center sm:items-start sm:text-left">
+    <div className="border px-5 ">
+      <div className="flex justify-between items-center gap-6 text-center sm:items-start sm:text-left max-w-220 mx-auto">
         <h1 className=" text-xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
           {/* max-w-xs */}
           {model}
