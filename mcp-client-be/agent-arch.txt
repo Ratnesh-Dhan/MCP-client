@@ -1,0 +1,49 @@
+User message
+    ↓
+Express agent
+    ↓
+Get MCP tools
+    ↓
+Convert → Ollama tools
+    ↓
+Ollama
+    ↓
+tool_calls?
+    │
+    ├── No → stream final response
+    │
+    └── Yes
+          ↓
+       callMCPTool()
+          ↓
+       tool result
+          ↓
+       Ollama again
+          ↓
+       repeat if another tool call
+          ↓
+       final streamed response
+
+
+KEY DESIGN
+
+POST /api/agent
+      │
+      ▼
+  runAgent()
+      │
+      ├── Ollama decides → normal answer
+      │
+      └── Ollama decides → tool call
+                          │
+                          ▼
+                     MCP tool
+                          │
+                          ▼
+                    tool result
+                          │
+                          ▼
+                       Ollama
+                          │
+                          ▼
+                    stream answer
