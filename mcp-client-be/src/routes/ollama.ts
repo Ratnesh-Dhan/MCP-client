@@ -1,8 +1,21 @@
 import { Router } from "express";
 
-import { listModles, showModel, chat } from "../services/ollama.js";
+import { listModles, showModel, chat, getLinks } from "../services/ollama.js";
 
 const OllamaRouter = Router();
+
+OllamaRouter.get("/networks", async (req, res) => {
+  try {
+    const links = await getLinks();
+    res.status(200).json(links);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : "Error while getting links.",
+    });
+  }
+});
 
 OllamaRouter.get("/models", async (req, res) => {
   try {

@@ -1,6 +1,8 @@
 import { Ollama } from "ollama";
 import { ollama, ollamaURL } from "../lib/ollama.js";
 import { Chat } from "../types/allTypes.js";
+import path from "node:path";
+import fs from "node:fs/promises";
 
 export const listModles = () => ollama.list();
 
@@ -19,4 +21,17 @@ export const chat = async ({ messages, model }: Chat) => {
     chatOllama,
     stream,
   };
+};
+
+export const getLinks = async () => {
+  try {
+    const db = await fs.readFile(
+      path.join(process.cwd(), "/dummy_database/model_network.json"),
+      "utf-8",
+    );
+    return JSON.parse(db);
+  } catch (error) {
+    console.log("Error reading dummy database file :", error);
+    return [];
+  }
 };

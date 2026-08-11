@@ -1,4 +1,5 @@
 "use client";
+import LocalNetwork from "@/components/settings/LocalNetwork";
 import ModelSelect from "@/components/settings/ModelSelect";
 import React from "react";
 
@@ -24,6 +25,7 @@ const Settings = () => {
       <h1 className="mb-6 text-3xl font-bold">Settings</h1>
 
       <div className="rounded-xl border p-6">
+        <LocalNetwork />
         <ModelSelect />
         <div className="mt-6">
           <h2>Connect MCP server</h2>

@@ -24,3 +24,8 @@ export interface SettingsStore {
   model: string;
   setModel: (model: string) => void;
 }
+
+export interface ModelNetwork {
+  id: number;
+  url: string;
+}

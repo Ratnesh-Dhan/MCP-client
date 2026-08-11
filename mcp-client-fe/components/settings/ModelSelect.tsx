@@ -17,7 +17,7 @@ export default function ModelSelect() {
         const res = await fetch("/api/models");
         const data = await res.json();
         setModels(data.models);
-
+        console.log("this is data", data);
         if (data.models.length > 0 && model === "") {
           setModel(data.models[0].model);
         }
@@ -41,11 +41,12 @@ export default function ModelSelect() {
         onChange={(e) => setModel(e.target.value)}
         className="w-full rounded-md border bg-background px-3 py-2"
       >
-        {models.map((model) => (
-          <option key={model.model} value={model.model}>
-            {model.model}
-          </option>
-        ))}
+        {models !== undefined &&
+          models.map((model) => (
+            <option key={model.model} value={model.model}>
+              {model.model}
+            </option>
+          ))}
       </select>
     </div>
   );
