@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { listModles, showModel, chat, getLinks } from "../services/ollama.js";
+import { setUrl } from "../store/store.js";
 
 const OllamaRouter = Router();
 
@@ -13,6 +14,20 @@ OllamaRouter.get("/networks", async (req, res) => {
     res.status(500).json({
       error:
         error instanceof Error ? error.message : "Error while getting links.",
+    });
+  }
+});
+
+OllamaRouter.post("/set-network", async (req, res) => {
+  try {
+    const { network } = req.body;
+    setUrl(network);
+    res.status(200).json({ success: true, network: network });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : "Error while setting network.",
     });
   }
 });

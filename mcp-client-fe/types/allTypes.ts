@@ -23,6 +23,8 @@ export type TextBoxProps = {
 export interface SettingsStore {
   model: string;
   setModel: (model: string) => void;
+  network: string;
+  setNetwork: (network: string) => void;
 }
 
 export interface ModelNetwork {

@@ -6,14 +6,13 @@ import OllamaRouter from "./routes/ollama.js";
 import AgentRouter from "./routes/agent.js";
 
 const app = express();
+app.use(express.json());
 
 app.use(
   cors({
     origin: "http://localhost:3000",
   }),
 );
-
-app.use(express.json());
 
 app.use("/api/mcp", MCProuter);
 app.use("/api/ollama", OllamaRouter);

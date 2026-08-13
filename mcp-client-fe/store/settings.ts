@@ -7,4 +7,6 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     set({
       model,
     }),
+  network: "",
+  setNetwork: (network) => set({ network }),
 }));

@@ -1,13 +1,14 @@
 "use client";
 import { ModelNetwork } from "@/types/allTypes";
 import React, { useEffect, useState } from "react";
+import { useSettingsStore } from "@/store/settings";
 
 const LocalNetwork = () => {
   const [incomming, setIncomming] = useState<ModelNetwork[]>([]);
-  const [network, setNetwork] = useState<string>("");
+  const { network, setNetwork } = useSettingsStore();
 
   useEffect(() => {
-    fetch("/api/modelNetwork")
+    fetch("/api/modelNetwork/getNetwork")
       .then((res) => {
         res.json().then((data) => {
           console.log(data);
@@ -20,7 +21,23 @@ const LocalNetwork = () => {
   }, []);
 
   useEffect(() => {
-    console.log("network ", network);
+    if (network !== "") {
+      fetch("/api/modelNetwork/setNetwork", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ network }),
+      })
+        .then((res) => {
+          res.json().then((data) => {
+            console.log({ data });
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }
   }, [network]);
 
   return (

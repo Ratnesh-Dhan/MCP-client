@@ -9,25 +9,39 @@ type Model = {
 
 export default function ModelSelect() {
   const [models, setModels] = useState<Model[]>([]);
-  const { model, setModel } = useSettingsStore();
+  const { model, setModel, network } = useSettingsStore();
 
   useEffect(() => {
-    const loadModels = async () => {
-      try {
-        const res = await fetch("/api/models");
-        const data = await res.json();
-        setModels(data.models);
-        console.log("this is data", data);
-        if (data.models.length > 0 && model === "") {
-          setModel(data.models[0].model);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
+    console.log("are we changing", network);
+    return;
+    if (network !== "") {
+      fetch("/api/models")
+        .then((res) => {
+          res.json().then((data) => {
+            setModels(data.models);
+            console.log("this is data", data);
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }
+    // const loadModels = async () => {
+    //   try {
+    //     const res = await fetch("/api/models");
+    //     const data = await res.json();
+    //     setModels(data.models);
+    //     console.log("this is data", data);
+    //     if (data.models.length > 0 && model === "") {
+    //       setModel(data.models[0].model);
+    //     }
+    //   } catch (err) {
+    //     console.error(err);
+    //   }
+    // };
 
-    loadModels();
-  }, []);
+    // loadModels();
+  }, [network]);
 
   return (
     <div className="space-y-2">

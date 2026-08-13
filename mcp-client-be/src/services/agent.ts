@@ -1,6 +1,6 @@
 import type { Message, Tool } from "ollama";
 import { Ollama } from "ollama";
-import { ollama, ollamaURL } from "../lib/ollama.js";
+import { ollamaURL } from "../lib/ollama.js";
 import { listMCPTools, callMCPTool } from "./mcp.js";
 import { MCPContent } from "../types/allTypes.js";
 
