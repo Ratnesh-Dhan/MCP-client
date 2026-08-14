@@ -8,6 +8,7 @@ const OllamaRouter = Router();
 OllamaRouter.get("/networks", async (req, res) => {
   try {
     const links = await getLinks();
+    setUrl(links[0]["url"]);
     res.status(200).json(links);
   } catch (error) {
     console.log(error);
@@ -21,6 +22,7 @@ OllamaRouter.get("/networks", async (req, res) => {
 OllamaRouter.post("/set-network", async (req, res) => {
   try {
     const { network } = req.body;
+    console.log(network);
     setUrl(network);
     res.status(200).json({ success: true, network: network });
   } catch (error) {
@@ -34,7 +36,15 @@ OllamaRouter.post("/set-network", async (req, res) => {
 
 OllamaRouter.get("/models", async (req, res) => {
   try {
-    const models = await listModles();
+    const network = req.headers["x-ollama-network"];
+
+    if (!network || Array.isArray(network)) {
+      return res.status(400).json({
+        error: "Ollama network is required.",
+      });
+    }
+
+    const models = await listModles(network);
     res.status(200).json(models);
   } catch (error) {
     console.log(error);

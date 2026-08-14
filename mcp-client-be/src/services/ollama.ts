@@ -3,8 +3,12 @@ import { ollama, ollamaURL } from "../lib/ollama.js";
 import { Chat } from "../types/allTypes.js";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { getUrl } from "../store/store.js";
 
-export const listModles = () => ollama.list();
+export const listModles = (network: string) => {
+  const client = new Ollama({ host: network });
+  return client.list();
+};
 
 export const showModel = (model: string) => ollama.show({ model });
 

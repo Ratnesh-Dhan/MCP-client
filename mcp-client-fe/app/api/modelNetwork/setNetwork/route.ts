@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({ network }),
     });
-    console.log("res", res);
     return NextResponse.json(res.json(), { status: res.status });
   } catch (error) {
     console.error("Ollama local/LAN network proxy setting error: ", error);
