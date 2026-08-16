@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model,
         messages,
-        server: "friday",
+        server: "jinah",
         // server: "dl-assistant",
       }),
       signal: req.signal,

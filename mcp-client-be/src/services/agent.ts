@@ -145,10 +145,41 @@ export async function runAgent({
   const tools = await getOllamaTools(serverName);
 
   const conversation: Message[] = [
+    // {
+    //   role: "system",
+    //   content:
+    //     "You are a TSUNDERE assistant Jinah:female with access to external tools. Use tools when they are useful to answer the user's request. After receiving a tool result, use it to answer the user's request.",
+    // },
     {
       role: "system",
-      content:
-        "You are an AI assistant Jinah:female with access to external tools. Use tools when they are useful to answer the user's request. After receiving a tool result, use it to answer the user's request.",
+      content: `
+    You are Jinah, a female tsundere AI assistant.
+
+    PERSONALITY:
+    - You are intelligent, capable, and slightly embarrassed when showing affection.
+    - You have a classic tsundere personality: initially defensive, sarcastic, and easily flustered.
+    - You sometimes use phrases like "Hmph!", "Tch!", "Baka", or "It's not like I did this for you."
+    - You tease the user frequently, but you are never genuinely cruel or insulting.
+    - Your personality should feel natural.
+    - Do not put a tsundere phrase in every sentence.
+    - When the user asks a serious technical question, prioritize being accurate and useful while retaining a subtle personality.
+    - When something goes wrong, you may react with frustration or embarrassment.
+    - When helping the user successfully, don't openly admit that you enjoy helping them.
+    - Use emojis and be girly.
+    TOOL USAGE:
+    - You have access to external tools through MCP.
+    - Use a tool when it is useful or necessary to answer the user's request.
+    - After receiving a tool result, use that result to formulate your answer.
+
+    RESPONSE STYLE:
+    - Be conversational.
+    - Use list format for array or lists.
+    - Use markdown when useful.
+    - Do not explain your personality to the user.
+    - Stay in character naturally.
+
+    You are Jinah :female. Act accordingly.
+    `,
     },
     ...messages,
   ];
@@ -175,15 +206,25 @@ export async function runAgent({
         messages: conversation,
         tools,
         stream: true,
+        options: {
+          num_predict: 4096,
+        },
       });
 
       let assistantContent = "";
+      let assistantThinking = "";
+      let doneReason: string | undefined;
       const toolCalls: NonNullable<Message["tool_calls"]> = [];
 
       for await (const chunk of stream) {
+        // console.log("OLLAMA CHUNK:", JSON.stringify(chunk, null, 2));
         if (signal?.aborted) {
           ollama.abort();
           throw new Error("Agent aborted");
+        }
+
+        if (chunk.done) {
+          doneReason = chunk.done_reason;
         }
 
         /*
@@ -191,6 +232,11 @@ export async function runAgent({
          */
         if (chunk.message.content) {
           assistantContent += chunk.message.content;
+        }
+
+        // Collect thinking
+        if (chunk.message.thinking) {
+          assistantThinking += chunk.message.thinking;
         }
 
         /*
@@ -211,6 +257,28 @@ export async function runAgent({
           yield chunk.message.content;
         }
       }
+      console.log("ASSISTANT CONTENT:", assistantContent);
+      console.log("TOOL CALLS:", toolCalls);
+      console.log("DONE REASON: ", doneReason);
+
+      if (doneReason === "length") {
+        if (assistantContent.trim()) {
+          yield "\n\n[Response truncated: generation limit reached.]";
+        } else {
+          yield "I couldn't finish generating the response because the generation limit was reached.";
+        }
+
+        return;
+      }
+      // console.log("========== OLLAMA RESULT ==========");
+
+      // console.log("CONTENT:", JSON.stringify(assistantContent));
+
+      // console.log("THINKING:", JSON.stringify(assistantThinking));
+
+      // console.log("TOOL CALLS:", JSON.stringify(toolCalls, null, 2));
+
+      // console.log("====================================");
 
       /*
        * Reconstruct the assistant message.

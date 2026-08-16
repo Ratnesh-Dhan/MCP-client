@@ -109,10 +109,10 @@ export default function Settings() {
       },
       body: JSON.stringify({
         // name: "dl-assistant",
-        name: "friday",
+        name: "jinah",
         command: "pnpm",
         args: ["start"],
-        cwd: "/home/zumbie/Codes/PERSONAL/friday-mcp",
+        cwd: "/home/zumbie/Codes/PERSONAL/jinah-mcp",
         // cwd: "D:\\Codes\\ml-assistant-mcp",
       }),
     });
@@ -122,6 +122,9 @@ export default function Settings() {
 
   return (
     <div className="rounded-xl border p-6 space-y-6">
+      <h2 className="text-lg text-center">
+        Judgmental Intelligent Neural Assistant
+      </h2>
       <LocalNetwork
         networks={networks}
         value={network}
