@@ -108,10 +108,12 @@ export default function Settings() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        name: "dl-assistant",
+        // name: "dl-assistant",
+        name: "friday",
         command: "pnpm",
         args: ["start"],
-        cwd: "D:\\Codes\\ml-assistant-mcp",
+        cwd: "/home/zumbie/Codes/PERSONAL/friday-mcp",
+        // cwd: "D:\\Codes\\ml-assistant-mcp",
       }),
     });
 

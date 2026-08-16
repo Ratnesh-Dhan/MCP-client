@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model,
         messages,
-        server: "dl-assistant",
+        server: "friday",
+        // server: "dl-assistant",
       }),
       signal: req.signal,
     });

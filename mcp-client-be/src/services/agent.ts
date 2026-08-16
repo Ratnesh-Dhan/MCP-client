@@ -142,7 +142,6 @@ export async function runAgent({
   const ollama = new Ollama({
     host: ollamaURL,
   });
-
   const tools = await getOllamaTools(serverName);
 
   const conversation: Message[] = [
