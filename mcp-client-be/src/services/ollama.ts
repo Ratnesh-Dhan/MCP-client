@@ -1,9 +1,9 @@
 import { Ollama } from "ollama";
-import { ollama, ollamaURL } from "../lib/ollama.js";
+import { ollama } from "../lib/ollama.js";
 import { Chat } from "../types/allTypes.js";
 import path from "node:path";
 import fs from "node:fs/promises";
-import { getUrl } from "../store/store.js";
+import { getCurrentNetwork } from "./currentNetworkDB.js";
 
 export const listModles = (network: string) => {
   const client = new Ollama({ host: network });
@@ -13,7 +13,7 @@ export const listModles = (network: string) => {
 export const showModel = (model: string) => ollama.show({ model });
 
 export const chat = async ({ messages, model }: Chat) => {
-  const chatOllama = new Ollama({ host: ollamaURL });
+  const chatOllama = new Ollama({ host: getCurrentNetwork()["url"] });
 
   const stream = await chatOllama.chat({
     model,

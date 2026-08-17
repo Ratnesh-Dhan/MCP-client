@@ -12,3 +12,7 @@ export type MCPContent = {
   type: "text";
   text?: string;
 };
+
+export interface UrlDBSchema {
+  url: string;
+}

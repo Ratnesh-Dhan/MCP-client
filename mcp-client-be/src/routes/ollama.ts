@@ -1,14 +1,14 @@
 import { Router } from "express";
 
 import { listModles, showModel, chat, getLinks } from "../services/ollama.js";
-import { setUrl } from "../store/store.js";
+import { setCurrentNetwork } from "../services/currentNetworkDB.js";
 
 const OllamaRouter = Router();
 
 OllamaRouter.get("/networks", async (req, res) => {
   try {
     const links = await getLinks();
-    setUrl(links[0]["url"]);
+    setCurrentNetwork({ url: links[0]["url"] });
     res.status(200).json(links);
   } catch (error) {
     console.log(error);
@@ -21,9 +21,10 @@ OllamaRouter.get("/networks", async (req, res) => {
 
 OllamaRouter.post("/set-network", async (req, res) => {
   try {
+    console.log("Hitting set-network ROUTE.");
     const { network } = req.body;
     console.log(network);
-    setUrl(network);
+    setCurrentNetwork({ url: network });
     res.status(200).json({ success: true, network: network });
   } catch (error) {
     console.log(error);

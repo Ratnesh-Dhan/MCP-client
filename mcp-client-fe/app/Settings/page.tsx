@@ -66,6 +66,19 @@ export default function Settings() {
       try {
         setLoadingModels(true);
 
+        const network_res = await fetch("/api/modelNetwork/setNetwork", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ network }),
+        });
+        if (!network_res.ok) {
+          throw new Error(
+            `Failed to set ollama network: ${network_res.status}`,
+          );
+        }
+
         const res = await fetch(
           `/api/models?network=${encodeURIComponent(network)}`,
         );
@@ -112,7 +125,8 @@ export default function Settings() {
         name: "jinah",
         command: "pnpm",
         args: ["start"],
-        cwd: "/home/zumbie/Codes/PERSONAL/jinah-mcp",
+        cwd: "D:\\Codes\\jinah",
+        // cwd: "/home/zumbie/Codes/PERSONAL/jinah-mcp",
         // cwd: "D:\\Codes\\ml-assistant-mcp",
       }),
     });
