@@ -13,6 +13,13 @@ export type MCPContent = {
   text?: string;
 };
 
+export type MCPResource = {
+  uri: string;
+  name?: string;
+  description?: string;
+  mimeType?: string;
+};
+
 export interface UrlDBSchema {
   url: string;
 }

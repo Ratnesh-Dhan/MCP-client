@@ -23,6 +23,24 @@ export async function listMCPTools(server: string) {
   return result.tools;
 }
 
+export async function listResources(server: string) {
+  const client = mcpManager.getClient(server);
+  if (!client) {
+    throw new Error(`MCP server ${server} is not connected.`);
+  }
+  const result = await client.listResources();
+  if (result.resources) return result.resources;
+  return [];
+}
+
+export async function readResources(server: string, uri: string) {
+  const client = mcpManager.getClient(server);
+  if (!client) {
+    throw new Error(`MCP server ${server} is not connect.`);
+  }
+  return client.readResource({ uri });
+}
+
 export async function callMCPTool(
   server: string,
   tool: string,

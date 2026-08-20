@@ -1,6 +1,6 @@
 import type { Message, Tool } from "ollama";
 import { Ollama } from "ollama";
-import { listMCPTools, callMCPTool } from "./mcp.js";
+import { listMCPTools, callMCPTool, listResources } from "./mcp.js";
 import { MCPContent } from "../types/allTypes.js";
 import { getCurrentNetwork } from "./currentNetworkDB.js";
 
@@ -17,6 +17,17 @@ export async function getOllamaTools(serverName: string): Promise<Tool[]> {
   }));
 }
 
+async function getOllamaResources(serverName: string) {
+  const mcpResources = await listResources(serverName);
+  if (mcpResources.length === 0) return [];
+  return mcpResources.map((resource) => ({
+    uri: resource.uri,
+    name: resource.name ?? resource.uri,
+    description: resource.description ?? "",
+    mimeType: resource.mimeType,
+  }));
+}
+
 export async function runAgent({
   model,
   messages,
@@ -28,7 +39,6 @@ export async function runAgent({
   serverName: string;
   signal?: AbortSignal;
 }) {
-  console.log("Ollama URL inside AGENT : ", getCurrentNetwork());
   const ollama = new Ollama({
     host: getCurrentNetwork()["url"],
   });
