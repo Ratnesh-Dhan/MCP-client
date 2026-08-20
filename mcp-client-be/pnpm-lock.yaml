@@ -213,6 +213,9 @@ importers:
       '@langchain/langgraph':
         specifier: ^1.4.10
         version: 1.4.10(@langchain/core@1.2.8)(zod@4.4.3)
+      '@langchain/ollama':
+        specifier: ^1.3.0
+        version: 1.3.0(@langchain/core@1.2.8)
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.0
         version: 1.30.0(@cfworker/json-schema@4.1.1)(zod@4.4.3)
@@ -446,6 +449,12 @@ packages:
     peerDependencies:
       '@langchain/core': ^1.1.48
       zod: ^3.25.32 || ^4.2.0
+
+  '@langchain/ollama@1.3.0':
+    resolution: {integrity: sha512-uzLkZVTXN0SI5zAoJbJzL4y/QN7gbmJ1txBgFfqJ5M0Qf+Yu2Zu8q98L3jIrfM+akWMaNmRU4R4APhcfQmeIsw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@langchain/core': ^1.0.0
 
   '@langchain/protocol@0.0.18':
     resolution: {integrity: sha512-XW1egQtPfsGI41w2AMZNFZrUIwFSQHTjVMZs0OaTpCAvht/QLoaPN8FQcsysMVypOhupG28J29yOorrc70otBQ==}
@@ -1193,6 +1202,11 @@ snapshots:
       - react-dom
       - svelte
       - vue
+
+  '@langchain/ollama@1.3.0(@langchain/core@1.2.8)':
+    dependencies:
+      '@langchain/core': 1.2.8
+      ollama: 0.6.3
 
   '@langchain/protocol@0.0.18': {}
 
