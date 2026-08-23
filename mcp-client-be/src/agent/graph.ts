@@ -15,10 +15,19 @@ export async function buildAgentGraph({
 
   async function llmNode(state: typeof AgentState.State) {
     console.log("LANGGRAPH: Calling Ollama");
-    const response = await llmWithTools.invoke(state.messages);
-    console.log("LANGGRAPH: Ollama response: ", response.content);
-    console.log("LANGGRAPH: Tool calls: ", response.tool_calls);
-    return { messages: [response] };
+    // const response = await llmWithTools.stream(state.messages);
+    const responseMessage = await llmWithTools.invoke(state.messages);
+    // let responseMessage: any = null;
+    // for await (const chunk of response) {
+    //   if (!responseMessage) {
+    //     responseMessage = chunk;
+    //   } else {
+    //     responseMessage = responseMessage.concat(chunk);
+    //   }
+    // }
+    console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
+    console.log("LANGGRAPH: Tool calls: ", responseMessage.tool_calls);
+    return { messages: [responseMessage] };
   }
 
   const toolNode = new ToolNode(tools);

@@ -1,7 +1,8 @@
 "use client";
 import ReactMarkDown from "react-markdown";
 import { ChatMessagesProps } from "@/types/allTypes";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
+import ThinkingBlock from "./ThinkingBlock";
 
 export default function ChatMessages({ messages }: ChatMessagesProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -32,6 +33,12 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
                   : "bg-transparent text-zinc-100"
               }`}
             >
+              {message.role === "assistant" && (
+                <ThinkingBlock
+                  thinking={message.thinking ?? ""}
+                  isThinking={Boolean(message.thinking) && !message.content}
+                />
+              )}
               <ReactMarkDown>{message.content}</ReactMarkDown>
             </div>
           </div>

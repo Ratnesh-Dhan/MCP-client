@@ -6,7 +6,11 @@ export async function createOllamaModel(
   model: string,
   tools: StructuredToolInterface[],
 ) {
-  const llm = new ChatOllama({ model, baseUrl: getCurrentNetwork()["url"] });
+  const llm = new ChatOllama({
+    model,
+    baseUrl: getCurrentNetwork()["url"],
+    streaming: true,
+  });
 
   return llm.bindTools(tools);
 }

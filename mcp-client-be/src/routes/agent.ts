@@ -14,13 +14,7 @@ AgentRouter.post("/", async (req, res) => {
 
     // Abort controller for specific request.
     const controller = new AbortController();
-    // browser disconnected / cancelled request.
-    // req.on("close", () => {
-    //   if (!res.writableEnded) {
-    //     console.log("Client disconnected -> aborting agent");
-    //     controller.abort();
-    //   }
-    // });
+
     req.on("aborted", () => {
       console.log("Client aborted request");
       controller.abort();

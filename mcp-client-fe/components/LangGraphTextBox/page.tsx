@@ -5,12 +5,13 @@ import { ArrowUp, CircleStop } from "lucide-react";
 import { Message, TextBoxProps } from "@/types/allTypes";
 import { useSettingsStore } from "@/store/settings";
 
-export default function TextBox({ setChat, chat }: TextBoxProps) {
+export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
   const abortController = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [text, setText] = useState<string>("");
   const [enableAbort, setEnableAbort] = useState<boolean>(false);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
 
   const { model } = useSettingsStore();
 
@@ -27,6 +28,7 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
       id: crypto.randomUUID(),
       role: role ? "user" : "assistant",
       content: text,
+      thinking: "",
     };
 
     return message;
@@ -46,6 +48,11 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
 
       // Build the full conversation
       const messages = [...chat.messages, userMessage];
+      const sendableMessages = messages.map(({ id, role, content }) => ({
+        id,
+        role,
+        content,
+      }));
 
       // Update the UI immediately
       setChat((prev) => ({
@@ -58,11 +65,14 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
         textareaRef.current.style.height = "0px";
       }
 
-      const res = await fetch("/api/oldAgent", {
+      const res = await fetch("/api/agent", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           model: model,
-          messages,
+          messages: sendableMessages,
         }),
         signal: controller.signal,
       });
@@ -72,33 +82,76 @@ export default function TextBox({ setChat, chat }: TextBoxProps) {
       const decoder = new TextDecoder();
 
       let assistantText: string = "";
+      let thinkingText: string = "";
+      let buffer = "";
       const id = crypto.randomUUID();
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          assistantText += decoder.decode(value, { stream: true });
 
-          setChat((prev) => {
-            const messages = [...prev.messages];
-            const lastIndex = messages.length - 1;
-            const lastMessage = messages[lastIndex];
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() ?? "";
 
-            if (lastMessage?.id === id) {
-              messages[lastIndex] = { ...lastMessage, content: assistantText };
-            } else {
-              messages.push({
-                id,
-                role: "assistant",
-                content: assistantText,
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data: ")) continue;
+
+            // const rawJson = trimmed.replace("data: ", "").trim();
+            const rawJson = trimmed.slice(6).trim();
+            if (!rawJson) continue;
+
+            try {
+              const data = JSON.parse(rawJson);
+              switch (data.type) {
+                case "thinking":
+                  thinkingText += data.content;
+                  break;
+                case "content":
+                  assistantText += data.content;
+                  break;
+                case "tool_start":
+                  setActiveTool(`Using tool: ${data.name}`);
+                  break;
+                case "tool_end":
+                  setActiveTool(null);
+                  break;
+                case "error":
+                  console.error("Agent error:", data.message);
+                  break;
+              }
+              setChat((prev) => {
+                const updatedMessages = [...prev.messages];
+                const lastIndex = updatedMessages.length - 1;
+                const lastMessage = updatedMessages[lastIndex];
+
+                if (lastMessage?.id === id) {
+                  updatedMessages[lastIndex] = {
+                    ...lastMessage,
+                    content: assistantText,
+                    thinking: thinkingText,
+                  };
+                } else {
+                  updatedMessages.push({
+                    id,
+                    role: "assistant",
+                    content: assistantText,
+                    thinking: thinkingText,
+                  });
+                }
+
+                return { ...prev, messages: updatedMessages };
               });
+            } catch (e) {
+              console.error("Failed to parse SSE JSON chunk: ", rawJson, e);
             }
-
-            return { ...prev, messages };
-          });
+          }
         }
       } finally {
         setEnableAbort(false);
+        setActiveTool(null);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
