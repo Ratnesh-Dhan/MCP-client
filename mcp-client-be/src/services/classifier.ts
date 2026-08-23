@@ -21,22 +21,42 @@ export async function classifyIntent({
     model,
     baseUrl: getCurrentNetwork()["url"],
     temperature: 0,
-    numPredict: 5, // Finish as fast as possible
+    numPredict: 200, // Finish as fast as possible,
+    streaming: false,
   });
 
-  const prompt = `You are an intent router. 
-Determine if external tools are NEEDED to answer the user request.
+  console.log("Tools :", availableTools);
 
-Available Tools:
-${availableTools.map((t) => `- ${t}`).join("\n")}
+  const prompt = `YYou are a routing classifier.
 
-Rules:
-- Output "AGENT" ONLY IF the user explicitly requests an operation that requires one of the listed tools (e.g., executing code, reading files, searching web, querying database).
-- Output "CHAT" for normal conversations, general knowledge, explanations, writing code, or math problems.
+Decide whether the user's request should be handled by:
 
-User Request: "${userMessage}"
+CHAT:
+The model can answer using the conversation and its existing knowledge.
+No external information, user data, files, applications, services, or actions are required.
 
-Respond with EXACTLY ONE WORD ("AGENT" or "CHAT"):`;
+AGENT:
+The request requires accessing external information or performing an action through an available tool.
+
+Important:
+- Judge what is REQUIRED to answer the request, not what the user explicitly asks the assistant to do.
+- Users may describe what they want without mentioning tools.
+- If the user refers to files, folders, messages, databases, applications, devices, accounts, or other external/user-specific data, choose AGENT when that information is not already present in the conversation.
+- If the user asks to search, retrieve, inspect, modify, send, create, delete, execute, query, or interact with something external, choose AGENT.
+- Normal conversation, greetings, opinions, explanations, general knowledge, coding help, and ordinary reasoning should use CHAT.
+- Do not choose AGENT merely because a tool exists that could theoretically be useful.
+- Choose AGENT only when external access or an external action is actually needed.
+
+Available tools:
+${availableTools.map((tool) => `- ${tool}`).join("\n")}
+
+User request:
+${JSON.stringify(userMessage)}
+
+Respond with exactly one word:
+CHAT
+or
+AGENT`;
 
   try {
     const response = await llm.invoke(prompt);

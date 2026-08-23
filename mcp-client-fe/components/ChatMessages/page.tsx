@@ -6,13 +6,39 @@ import ThinkingBlock from "./ThinkingBlock";
 
 export default function ChatMessages({ messages }: ChatMessagesProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isPinnedToBottomRef = useRef(true);
+  const isProgrammaticScrollRef = useRef(false);
 
   useEffect(() => {
     const container = chatContainerRef.current;
     if (!container) return;
 
-    container.scrollTop = container.scrollHeight;
+    const handleScroll = () => {
+      if (isProgrammaticScrollRef.current) {
+        isProgrammaticScrollRef.current = false;
+        return;
+      }
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // Small threshold so it re-pins even if not pixel-perfect at bottom
+      const threshold = 40;
+      isPinnedToBottomRef.current = distanceFromBottom <= threshold;
+    };
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+    // container.scrollTop = container.scrollHeight;
+  }, []);
+
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    if (isPinnedToBottomRef.current) {
+      isProgrammaticScrollRef.current = true;
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages]);
+
   return (
     <div
       ref={chatContainerRef}

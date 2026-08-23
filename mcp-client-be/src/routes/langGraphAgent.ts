@@ -38,7 +38,6 @@ LangGraphAgentRouter.post("/", async (req, res) => {
     for await (const chunk of generator) {
       if (controller.signal.aborted) break;
       // Send as SSE payload
-      console.log(chunk);
       res.write(`data: ${JSON.stringify(chunk)}\n\n`);
     }
     if (!res.writableEnded) res.end();
