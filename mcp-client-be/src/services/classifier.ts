@@ -21,13 +21,11 @@ export async function classifyIntent({
     model,
     baseUrl: getCurrentNetwork()["url"],
     temperature: 0,
-    numPredict: 200, // Finish as fast as possible,
+    // numPredict: 400, // Finish as fast as possible,
     streaming: false,
   });
 
-  console.log("Tools :", availableTools);
-
-  const prompt = `YYou are a routing classifier.
+  const prompt = `You are a routing classifier.
 
 Decide whether the user's request should be handled by:
 
@@ -39,13 +37,12 @@ AGENT:
 The request requires accessing external information or performing an action through an available tool.
 
 Important:
-- Judge what is REQUIRED to answer the request, not what the user explicitly asks the assistant to do.
-- Users may describe what they want without mentioning tools.
+- Judge what is REQUIRED to answer the request.
+- Users may describe what they want with or without mentioning tools.
 - If the user refers to files, folders, messages, databases, applications, devices, accounts, or other external/user-specific data, choose AGENT when that information is not already present in the conversation.
 - If the user asks to search, retrieve, inspect, modify, send, create, delete, execute, query, or interact with something external, choose AGENT.
 - Normal conversation, greetings, opinions, explanations, general knowledge, coding help, and ordinary reasoning should use CHAT.
-- Do not choose AGENT merely because a tool exists that could theoretically be useful.
-- Choose AGENT only when external access or an external action is actually needed.
+- Choose AGENT only when external access or an external action is actually needed or user requested.
 
 Available tools:
 ${availableTools.map((tool) => `- ${tool}`).join("\n")}

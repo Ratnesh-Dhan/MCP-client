@@ -62,7 +62,11 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
               {message.role === "assistant" && (
                 <ThinkingBlock
                   thinking={message.thinking ?? ""}
-                  isThinking={Boolean(message.thinking) && !message.content}
+                  isThinking={
+                    Boolean(message.thinking) &&
+                    !message.content &&
+                    message.status !== "aborted"
+                  }
                 />
               )}
               <ReactMarkDown>{message.content}</ReactMarkDown>

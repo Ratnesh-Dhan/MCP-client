@@ -1,10 +1,13 @@
 import { Dispatch, SetStateAction } from "react";
 
+export type MessageStatus = "thinking" | "generating" | "done" | "aborted";
+
 export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
   thinking?: string;
+  status?: MessageStatus;
 };
 
 export type Chat = {

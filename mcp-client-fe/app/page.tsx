@@ -10,9 +10,9 @@ export default function Home() {
     messages: [],
   });
 
-  useEffect(() => {
-    console.log(chat);
-  }, [chat]);
+  // useEffect(() => {
+  //   console.log({ chat });
+  // }, [chat]);
   return (
     <div className="flex flex-col flex-1 justify-center items-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex flex-1 w-full max-w-6xl flex-col items-center justify-between pt-3 px-16 bg-white dark:bg-black sm:items-start">

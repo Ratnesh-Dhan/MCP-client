@@ -2,7 +2,7 @@
 // https://medium.com/@jonigl/using-ollama-with-typescript-a-simple-guide-20f5e8d3827c
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, CircleStop } from "lucide-react";
-import { Message, TextBoxProps } from "@/types/allTypes";
+import { Message, MessageStatus, TextBoxProps } from "@/types/allTypes";
 import { useSettingsStore } from "@/store/settings";
 
 export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
@@ -42,6 +42,7 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
     abortController.current = controller;
     // enable abort state
     setEnableAbort(true);
+    const id = crypto.randomUUID();
 
     try {
       const userMessage = messageBuilder(text, true);
@@ -84,7 +85,6 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
       let assistantText: string = "";
       let thinkingText: string = "";
       let buffer = "";
-      const id = crypto.randomUUID();
 
       try {
         while (true) {
@@ -104,13 +104,16 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
             if (!rawJson) continue;
 
             try {
+              let status: MessageStatus = "thinking";
               const data = JSON.parse(rawJson);
               switch (data.type) {
                 case "thinking":
                   thinkingText += data.content;
+                  status = "thinking";
                   break;
                 case "content":
                   assistantText += data.content;
+                  status = "generating";
                   break;
                 case "tool_start":
                   setActiveTool(`Using tool: ${data.name}`);
@@ -132,6 +135,7 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
                     ...lastMessage,
                     content: assistantText,
                     thinking: thinkingText,
+                    status: status,
                   };
                 } else {
                   updatedMessages.push({
@@ -139,6 +143,7 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
                     role: "assistant",
                     content: assistantText,
                     thinking: thinkingText,
+                    status: status,
                   });
                 }
 
@@ -156,6 +161,17 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         console.log("Generation stopped");
+        setChat((prev) => ({
+          ...prev,
+          messages: prev.messages.map((message) =>
+            message.id === id
+              ? {
+                  ...message,
+                  status: "aborted",
+                }
+              : message,
+          ),
+        }));
         return;
       }
       console.log(err);
