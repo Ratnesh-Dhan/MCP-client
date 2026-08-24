@@ -24,11 +24,21 @@ export type TextBoxProps = {
   chat: ChatMessagesProps;
 };
 
+export type OllamaModel = {
+  model: string;
+};
+
 export interface SettingsStore {
   model: string;
   setModel: (model: string) => void;
   network: string;
   setNetwork: (network: string) => void;
+  networks: ModelNetwork[];
+  networksLoaded: boolean;
+  setNetworks: (networks: ModelNetwork[]) => void;
+  models: OllamaModel[];
+  modelsLoadedForNetwork: string;
+  setModelsForNetwork: (network: string, models: OllamaModel[]) => void;
 }
 
 export interface ModelNetwork {

@@ -1,15 +1,16 @@
 "use client";
 
-type Model = {
-  model: string;
-};
+import { Bot, Loader2 } from "lucide-react";
+import { fieldLabelClassName, selectClassName } from "@/components/settings/styles";
+import { OllamaModel } from "@/types/allTypes";
 
 type ModelSelectProps = {
-  models: Model[];
+  models: OllamaModel[];
   value: string;
   loading: boolean;
   disabled: boolean;
   onChange: (value: string) => void;
+  onOpen: () => void | Promise<void>;
 };
 
 export default function ModelSelect({
@@ -18,103 +19,48 @@ export default function ModelSelect({
   loading,
   disabled,
   onChange,
+  onOpen,
 }: ModelSelectProps) {
   return (
     <div className="space-y-2">
-      <label htmlFor="model" className="block text-sm font-medium">
-        Model
+      <label htmlFor="model" className={fieldLabelClassName}>
+        Language model
       </label>
 
-      <select
-        id="model"
-        value={value}
-        disabled={disabled || loading}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border bg-background px-3 py-2"
-      >
-        {loading ? (
-          <option value="">Loading models...</option>
-        ) : models.length === 0 ? (
-          <option value="">No models available</option>
-        ) : (
-          models.map((model) => (
-            <option key={model.model} value={model.model}>
-              {model.model}
-            </option>
-          ))
+      <div className="relative">
+        <Bot className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+        <select
+          id="model"
+          value={value}
+          disabled={disabled || loading}
+          onMouseDown={onOpen}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${selectClassName} appearance-none pl-10 pr-10`}
+        >
+          {loading ? (
+            <option value="">Loading models...</option>
+          ) : !value && models.length === 0 ? (
+            <option value="">Select a model...</option>
+          ) : models.length === 0 ? (
+            <option value="">No models available</option>
+          ) : (
+            models.map((model) => (
+              <option key={model.model} value={model.model}>
+                {model.model}
+              </option>
+            ))
+          )}
+        </select>
+        {loading && (
+          <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-violet-500" />
         )}
-      </select>
+      </div>
+
+      {disabled && !loading && (
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Choose a network first to load available models.
+        </p>
+      )}
     </div>
   );
 }
-// "use client";
-
-// import { useSettingsStore } from "@/store/settings";
-// import { useEffect, useState } from "react";
-
-// type Model = {
-//   model: string;
-// };
-
-// export default function ModelSelect() {
-//   const [models, setModels] = useState<Model[]>([]);
-//   const { model, setModel, network } = useSettingsStore();
-//   const selectClick = () => {
-//     console.log("MODEL SELECTION CLICKED");
-//   };
-//   useEffect(() => {
-//     console.log("are we changing", network);
-//     // if (network !== "") {
-//     //   console.log("We are inside models.get : ", network);
-//     //   fetch("/api/models")
-//     //     .then((res) => {
-//     //       res.json().then((data) => {
-//     //         setModels(data.models);
-//     //         console.log("this is data", data);
-//     //       });
-//     //     })
-//     //     .catch((err) => {
-//     //       console.log(err);
-//     //     });
-//     // }
-//   }, [network]);
-
-//   return (
-//     <div className="space-y-2">
-//       <label htmlFor="model" className="block text-sm font-medium">
-//         Model
-//       </label>
-
-//       <select
-//         id="model"
-//         value={model}
-//         onChange={(e) => setModel(e.target.value)}
-//         className="w-full rounded-md border bg-background px-3 py-2"
-//         onClick={selectClick}
-//       >
-//         {models !== undefined &&
-//           models.map((model) => (
-//             <option key={model.model} value={model.model}>
-//               {model.model}
-//             </option>
-//           ))}
-//       </select>
-//     </div>
-//   );
-// }
-
-// // const loadModels = async () => {
-// //   try {
-// //     const res = await fetch("/api/models");
-// //     const data = await res.json();
-// //     setModels(data.models);
-// //     console.log("this is data", data);
-// //     if (data.models.length > 0 && model === "") {
-// //       setModel(data.models[0].model);
-// //     }
-// //   } catch (err) {
-// //     console.error(err);
-// //   }
-// // };
-
-// // loadModels();
