@@ -125,8 +125,8 @@ export default function Settings() {
         name: "jinah",
         command: "pnpm",
         args: ["start"],
-        cwd: "D:\\Codes\\jinah",
-        // cwd: "/home/zumbie/Codes/PERSONAL/jinah-mcp",
+        // cwd: "D:\\Codes\\jinah",
+        cwd: "/home/zumbie/Codes/PERSONAL/jinah-mcp",
         // cwd: "D:\\Codes\\ml-assistant-mcp",
       }),
     });
