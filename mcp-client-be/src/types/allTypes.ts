@@ -34,12 +34,6 @@ export type MCPTool = {
   };
 };
 
-export type callOllamaType = {
-  model: string;
-  messages: any[];
-  tools: any[];
-};
-
 export type buildAgentGraphType = {
   model: string;
   serverName: string;

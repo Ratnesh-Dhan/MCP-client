@@ -1,15 +1,15 @@
 "use client";
 
-type Network = {
-  id: string;
-  url: string;
-};
+import { Globe, Loader2 } from "lucide-react";
+import { fieldLabelClassName, selectClassName } from "@/components/settings/styles";
+import { ModelNetwork } from "@/types/allTypes";
 
 type LocalNetworkProps = {
-  networks: Network[];
+  networks: ModelNetwork[];
   value: string;
   loading: boolean;
   onChange: (value: string) => void;
+  onOpen: () => void | Promise<void>;
 };
 
 export default function LocalNetwork({
@@ -17,98 +17,42 @@ export default function LocalNetwork({
   value,
   loading,
   onChange,
+  onOpen,
 }: LocalNetworkProps) {
   return (
     <div className="space-y-2">
-      <label htmlFor="network" className="block text-sm font-medium">
-        Local or network model
+      <label htmlFor="network" className={fieldLabelClassName}>
+        Network endpoint
       </label>
 
-      <select
-        id="network"
-        value={value}
-        disabled={loading}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border bg-background px-3 py-2"
-      >
-        {loading ? (
-          <option value="">Loading networks...</option>
-        ) : networks.length === 0 ? (
-          <option value="">No networks available</option>
-        ) : (
-          networks.map((network) => (
-            <option key={network.id} value={network.url}>
-              {network.url}
-            </option>
-          ))
+      <div className="relative">
+        <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+        <select
+          id="network"
+          value={value}
+          disabled={loading}
+          onMouseDown={onOpen}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${selectClassName} appearance-none pl-10 pr-10`}
+        >
+          {loading ? (
+            <option value="">Loading networks...</option>
+          ) : !value && networks.length === 0 ? (
+            <option value="">Select a network...</option>
+          ) : networks.length === 0 ? (
+            <option value="">No networks available</option>
+          ) : (
+            networks.map((network) => (
+              <option key={network.id} value={network.url}>
+                {network.url}
+              </option>
+            ))
+          )}
+        </select>
+        {loading && (
+          <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-violet-500" />
         )}
-      </select>
+      </div>
     </div>
   );
 }
-// "use client";
-// import { ModelNetwork } from "@/types/allTypes";
-// import React, { useEffect, useState } from "react";
-// import { useSettingsStore } from "@/store/settings";
-
-// const LocalNetwork = () => {
-//   const [incomming, setIncomming] = useState<ModelNetwork[]>([]);
-//   const { network, setNetwork } = useSettingsStore();
-
-//   useEffect(() => {
-//     fetch("/api/modelNetwork/getNetwork")
-//       .then((res) => {
-//         res.json().then((data) => {
-//           console.log(data);
-//           setIncomming(data);
-//         });
-//       })
-//       .catch((err) => {
-//         console.log(err);
-//       });
-//   }, []);
-
-//   useEffect(() => {
-//     if (network !== "") {
-//       fetch("/api/modelNetwork/setNetwork", {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({ network }),
-//       })
-//         .then((res) => {
-//           res.json().then((data) => {
-//             console.log({ data });
-//           });
-//         })
-//         .catch((err) => {
-//           console.log(err);
-//         });
-//     }
-//   }, [network]);
-
-//   return (
-//     <div className="space-y-2">
-//       <label htmlFor="incommingModel" className="block text-sm font-medium">
-//         Local or network model
-//       </label>
-//       <select
-//         id="incommingModel"
-//         value={network}
-//         onChange={(e) => setNetwork(e.target.value)}
-//         className="w-full rounded-md border bg-background px-3 py-2"
-//       >
-//         {incomming.length !== 0
-//           ? incomming.map((element) => (
-//               <option key={element.id} value={element.url}>
-//                 {element.url}
-//               </option>
-//             ))
-//           : null}
-//       </select>
-//     </div>
-//   );
-// };
-
-// export default LocalNetwork;
