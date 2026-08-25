@@ -192,7 +192,7 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
   return (
     <div
       onClick={() => textareaRef.current?.focus()}
-      className="absolute translate-x-0 md:-translate-x-10 lg:translate-x-15 bottom-10 w-full max-w-4xl rounded-3xl border border-zinc-700 bg-zinc-900 px-4 py-3"
+      className="fixed bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 rounded-[1.75rem] border border-slate-200 bg-white/95 px-4 py-3 shadow-2xl shadow-slate-300/70 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95 dark:shadow-black/40"
     >
       <textarea
         ref={textareaRef}
@@ -206,24 +206,32 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
         resize-none
         overflow-y-auto
         bg-transparent
-        text-white
-        placeholder:text-zinc-500
+        text-slate-950
+        placeholder:text-slate-400
         outline-none
         max-h-[200px]
+        dark:text-white
+        dark:placeholder:text-zinc-500
         "
       />
 
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="min-w-0 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+          {activeTool && <p className="truncate">{activeTool}</p>}
+        </div>
         {enableAbort ? (
           <button
             onClick={stopGeneration}
             className="
           flex h-9 w-9 items-center justify-center
             rounded-full
-            bg-white
-            text-black
-            hover:bg-zinc-200
+            bg-slate-950
+            text-white
+            hover:bg-slate-800
             disabled:opacity-40
+            dark:bg-white
+            dark:text-black
+            dark:hover:bg-zinc-200
             "
           >
             <CircleStop size={18} />
@@ -234,9 +242,9 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
             className="
           flex h-9 w-9 items-center justify-center
             rounded-full
-            bg-white
-            text-black
-            hover:bg-zinc-200
+            bg-emerald-500
+            text-slate-950
+            hover:bg-emerald-400
             disabled:opacity-40
             "
             disabled={!text.trim()}
