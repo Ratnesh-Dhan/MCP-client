@@ -86,77 +86,72 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
       let thinkingText: string = "";
       let buffer = "";
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n\n");
-          buffer = lines.pop() ?? "";
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() ?? "";
 
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data: ")) continue;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data: ")) continue;
 
-            // const rawJson = trimmed.replace("data: ", "").trim();
-            const rawJson = trimmed.slice(6).trim();
-            if (!rawJson) continue;
+          // const rawJson = trimmed.replace("data: ", "").trim();
+          const rawJson = trimmed.slice(6).trim();
+          if (!rawJson) continue;
 
-            try {
-              let status: MessageStatus = "thinking";
-              const data = JSON.parse(rawJson);
-              switch (data.type) {
-                case "thinking":
-                  thinkingText += data.content;
-                  status = "thinking";
-                  break;
-                case "content":
-                  assistantText += data.content;
-                  status = "generating";
-                  break;
-                case "tool_start":
-                  setActiveTool(`Using tool: ${data.name}`);
-                  break;
-                case "tool_end":
-                  setActiveTool(null);
-                  break;
-                case "error":
-                  console.error("Agent error:", data.message);
-                  break;
-              }
-              setChat((prev) => {
-                const updatedMessages = [...prev.messages];
-                const lastIndex = updatedMessages.length - 1;
-                const lastMessage = updatedMessages[lastIndex];
-
-                if (lastMessage?.id === id) {
-                  updatedMessages[lastIndex] = {
-                    ...lastMessage,
-                    content: assistantText,
-                    thinking: thinkingText,
-                    status: status,
-                  };
-                } else {
-                  updatedMessages.push({
-                    id,
-                    role: "assistant",
-                    content: assistantText,
-                    thinking: thinkingText,
-                    status: status,
-                  });
-                }
-
-                return { ...prev, messages: updatedMessages };
-              });
-            } catch (e) {
-              console.error("Failed to parse SSE JSON chunk: ", rawJson, e);
+          try {
+            let status: MessageStatus = "thinking";
+            const data = JSON.parse(rawJson);
+            switch (data.type) {
+              case "thinking":
+                thinkingText += data.content;
+                status = "thinking";
+                break;
+              case "content":
+                assistantText += data.content;
+                status = "generating";
+                break;
+              case "tool_start":
+                setActiveTool(`Using tool: ${data.name}`);
+                break;
+              case "tool_end":
+                setActiveTool(null);
+                break;
+              case "error":
+                console.error("Agent error:", data.message);
+                break;
             }
+            setChat((prev) => {
+              const updatedMessages = [...prev.messages];
+              const lastIndex = updatedMessages.length - 1;
+              const lastMessage = updatedMessages[lastIndex];
+
+              if (lastMessage?.id === id) {
+                updatedMessages[lastIndex] = {
+                  ...lastMessage,
+                  content: assistantText,
+                  thinking: thinkingText,
+                  status: status,
+                };
+              } else {
+                updatedMessages.push({
+                  id,
+                  role: "assistant",
+                  content: assistantText,
+                  thinking: thinkingText,
+                  status: status,
+                });
+              }
+
+              return { ...prev, messages: updatedMessages };
+            });
+          } catch (e) {
+            console.error("Failed to parse SSE JSON chunk: ", rawJson, e);
           }
         }
-      } finally {
-        setEnableAbort(false);
-        setActiveTool(null);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -174,7 +169,14 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
         }));
         return;
       }
-      console.log(err);
+      console.error("Generation Error : ", err);
+    } finally {
+      setEnableAbort(false);
+      setActiveTool(null);
+
+      if (abortController.current === controller) {
+        abortController.current = null;
+      }
     }
   };
 
@@ -186,6 +188,7 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
   }
 
   const stopGeneration = () => {
+    if (!abortController.current) return;
     abortController.current?.abort();
   };
 
