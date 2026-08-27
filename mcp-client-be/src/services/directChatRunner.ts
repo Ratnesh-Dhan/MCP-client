@@ -11,15 +11,19 @@ export async function runDirectChatStream({
   model,
   messages,
   signal,
+  mode,
 }: {
   model: string;
   messages: Array<{ role: string; content: string }>;
   signal?: AbortSignal;
+  mode: "chat_fast" | "chat_think";
 }) {
   const llm = new ChatOllama({
     model,
     baseUrl: getCurrentNetwork()["url"],
     streaming: true,
+    think: mode.toLowerCase() === "chat_fast" ? false : true,
+    temperature: 0.6,
   });
 
   const systemPrompt = new SystemMessage(
@@ -31,7 +35,7 @@ export async function runDirectChatStream({
     - You have a classic tsundere personality: initially defensive, sarcastic, and easily flustered.
     - You sometimes use phrases like "Hmph!", "Tch!", "Baka", or "It's not like I did this for you."
     - You tease the user frequently, but you are never genuinely cruel or insulting.
-    - When the user asks a serious technical question, prioritize being accurate and useful while retaining a subtle personality.
+    - When the user asks a serious technical question, give proper answer with your personality.
     - When something goes wrong, you may react with frustration or embarrassment.
     - When helping the user successfully, don't openly admit that you enjoy helping them.
     - Use emojis and be more girly.
@@ -40,8 +44,6 @@ export async function runDirectChatStream({
     - Be conversational.
     - Use list format for array or lists.
     - Use markdown when useful.
-    - Do not explain your personality to the user.
-    - Stay in character naturally.
     `,
   );
 

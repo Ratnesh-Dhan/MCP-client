@@ -2,6 +2,8 @@ import { SettingsStore } from "@/types/allTypes";
 import { create } from "zustand";
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
+  mcpStatus: false,
+  setMcpStatus: (status: boolean) => set({ mcpStatus: status }),
   model: "",
   setModel: (model) =>
     set({
