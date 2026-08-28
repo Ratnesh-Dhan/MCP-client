@@ -52,6 +52,7 @@ CHAT_THINK:
 Use when:
 - No external tool is required ,
 - BUT solving the request benefits substantially from deeper multi-step reasoning.
+- Unless user specificaly asked to think.
 - Examples:
   complex debugging,
   architecture design,

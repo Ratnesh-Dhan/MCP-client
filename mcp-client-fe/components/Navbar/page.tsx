@@ -1,18 +1,32 @@
 "use client";
 import { useSettingsStore } from "@/store/settings";
-import { Home, Settings, Wifi } from "lucide-react";
+import { Home, Settings, Wifi, WifiOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect } from "react";
 
 const Navbar = () => {
-  const { model } = useSettingsStore();
+  const { model, mcpStatus, setMcpStatus } = useSettingsStore();
   const pathname = usePathname();
   const navItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/Settings", label: "Settings", icon: Settings },
   ];
+
+  useEffect(() => {
+    const backendHealth = async () => {
+      const response = await fetch("/api/health", {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        setMcpStatus(false);
+      }
+    };
+    backendHealth();
+    const interval = setInterval(backendHealth, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/75">
@@ -32,10 +46,16 @@ const Navbar = () => {
         </Link>
 
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 md:flex dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200">
-            <Wifi size={15} />
-            Ready
-          </div>
+          {mcpStatus ? (
+            <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 md:flex dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200">
+              <Wifi size={15} />
+              Ready
+            </div>
+          ) : (
+            <div className="hidden items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 md:flex dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200">
+              <WifiOff size={15} /> Ready
+            </div>
+          )}
           <nav className="flex items-center rounded-full border border-slate-200 bg-slate-100/80 p-1 shadow-sm shadow-slate-200/70 dark:border-white/10 dark:bg-white/10 dark:shadow-none">
             {navItems.map(({ href, label, icon: Icon }) => {
               const isActive = pathname === href;

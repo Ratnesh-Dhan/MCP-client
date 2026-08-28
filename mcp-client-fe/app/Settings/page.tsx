@@ -22,6 +22,8 @@ export default function Settings() {
     models,
     modelsLoadedForNetwork,
     setModelsForNetwork,
+    setMcpStatus,
+    mcpStatus,
   } = useSettingsStore();
 
   const [loadingNetworks, setLoadingNetworks] = useState(false);
@@ -136,7 +138,13 @@ export default function Settings() {
         body: JSON.stringify(selected.config),
       });
 
-      console.log(await res.json());
+      const response = await res.json();
+      console.log(response);
+      if (response.success === true) {
+        setMcpStatus(true);
+        console.log("MCP connected successfully.");
+        console.log(mcpStatus);
+      }
     } catch (error) {
       console.error("MCP connect error:", error);
     } finally {
