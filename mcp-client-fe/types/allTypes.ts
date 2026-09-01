@@ -29,6 +29,8 @@ export type OllamaModel = {
 };
 
 export interface SettingsStore {
+  mcpStatus: boolean;
+  setMcpStatus: (status: boolean) => void;
   model: string;
   setModel: (model: string) => void;
   network: string;

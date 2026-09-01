@@ -3,6 +3,7 @@ import cors from "cors";
 
 import MCProuter from "./routes/mcp.js";
 import OllamaRouter from "./routes/ollama.js";
+import SupportRouter from "./routes/support.js";
 import AgentRouter from "./routes/agent.js";
 import LangGraphAgentRouter from "./routes/langGraphAgent.js";
 
@@ -19,6 +20,7 @@ app.use("/api/mcp", MCProuter);
 app.use("/api/ollama", OllamaRouter);
 app.use("/api/agent", AgentRouter);
 app.use("/api/langGraphAgent", LangGraphAgentRouter);
+app.use("/api/support", SupportRouter);
 
 app.get("/", (_, res) => {
   res.json({

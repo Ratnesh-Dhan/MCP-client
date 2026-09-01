@@ -11,3 +11,11 @@ export type typeRunAgentStream = {
   serverName: string;
   signal?: AbortSignal;
 };
+
+export type typeClassifier = {
+  model: string;
+  userMessage: string;
+  conversation: { role: string; content: string }[];
+  availableTools: string[];
+  signal?: AbortSignal;
+};
