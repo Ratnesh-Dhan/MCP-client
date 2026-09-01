@@ -19,3 +19,10 @@ export type typeClassifier = {
   availableTools: string[];
   signal?: AbortSignal;
 };
+
+export type ToolExecution = {
+  name: string;
+  args?: unknown;
+  success?: boolean;
+  output?: string;
+};
