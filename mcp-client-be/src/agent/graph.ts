@@ -21,7 +21,7 @@ export async function buildAgentGraph({
     return { messages: [responseMessage] };
   }
 
-  const toolNode = new ToolNode(tools);
+  const toolNode = new ToolNode(tools, { handleToolErrors: true });
 
   return new StateGraph(AgentState)
     .addNode("llm", llmNode)
@@ -38,6 +38,26 @@ export async function buildAgentGraph({
 
     .compile();
 }
+
+// Current Graph Architecture
+// ┌─────────────┐
+// │             │
+// ▼             │
+// ┌──────┐         │
+// START ──► │  LLM │─────────┤
+// └──────┘         │
+// │             │
+// tool call?       │
+// │             │
+// ▼             │
+// ┌───────┐        │
+// │ Tools │────────┘
+// └───────┘
+// │
+// no tools
+// │
+// ▼
+// END
 
 // LangGraph Router Node (Inside the Graph Architecture) IF WE WANT TO ROUTE FROM GRAPH
 
