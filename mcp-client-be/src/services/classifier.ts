@@ -65,7 +65,7 @@ Use when:
 
 AGENT:
 The request requires accessing external information or performing an action through an available tool.
-
+- Web access is required
 Important:
 - Interpret the current user request using the conversation context.
 - Do NOT classify the current request in isolation.
