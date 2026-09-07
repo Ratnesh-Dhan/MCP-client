@@ -15,14 +15,13 @@ export const createWebSearchAgent = async (model: string, network: string) => {
     maxResults: 3,
     searchOptions: { safeSearch: SafeSearchType.OFF },
   });
-  console.log("Hitting web search");
 
   console.log("[DDG TEST] invoking");
 
-  const result = await duckDuckGoTool.invoke("What is DuckDuckGo?");
+  // const result = await duckDuckGoTool.invoke("What is DuckDuckGo?");
 
   console.log("[DDG TEST] returned");
-  console.dir(result, { depth: null });
+  // console.dir(result, { depth: null });
 
   const webSearchAgent = createDeepAgent({
     model: llm,

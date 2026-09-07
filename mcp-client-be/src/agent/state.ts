@@ -1,6 +1,7 @@
 import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 
 export type ToolExecution = {
+  toolCallId: string;
   tool: string;
   args: Record<string, unknown>;
   success: boolean;
@@ -28,8 +29,8 @@ export const AgentState = Annotation.Root({
     default: () => [],
   }),
 
-  iteration: Annotation<number>({
-    reducer: (_, update) => update,
+  llmCalls: Annotation<number>({
+    reducer: (current, update) => current + update,
     default: () => 0,
   }),
 });

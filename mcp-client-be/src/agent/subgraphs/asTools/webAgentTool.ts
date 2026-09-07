@@ -6,7 +6,7 @@ export const webResearchTool = tool(
   {
     name: "webResearch",
     description:
-      "Delegate to a web research agent to answer questions needing for web Search.",
+      "Delegate to a web research agent to answer questions needing for web Search. (IMPORTANT: webResearch tool must be called alone.)",
     schema: z.object({
       task: z
         .string()

@@ -1,5 +1,5 @@
+// import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { AgentState } from "./state.js";
 import { getAgentTools } from "./tools.js";
 import { createOllamaModel } from "./nodes/llm.js";
@@ -8,6 +8,7 @@ import { getCurrentNetwork } from "../services/currentNetworkDB.js";
 import { webAgentGraph } from "./subgraphs/webAgent/graph.js";
 import { webResearchTool } from "./subgraphs/asTools/webAgentTool.js";
 import { AIMessage, ToolMessage } from "@langchain/core/messages";
+import { MCPToolNode } from "./nodes/MCPToolNode.js";
 
 export async function buildAgentGraph({
   model,
@@ -24,15 +25,16 @@ export async function buildAgentGraph({
     console.log("LANGGRAPH: Calling Ollama");
     const responseMessage = await llmWithTools.invoke(state.messages);
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
-    console.log("LANGGRAPH: Tool calls: ", responseMessage.tool_calls);
-    return { messages: [responseMessage] };
+    // console.log("LANGGRAPH: Tool calls: ", responseMessage.tool_calls);
+    return { messages: [responseMessage], llmCalls: 1 };
   }
 
   const webSearchAgent = await webAgentGraph(model, getCurrentNetwork()["url"]);
 
-  const toolNode = new ToolNode(tools, {
-    handleToolErrors: true,
-  });
+  // const toolNode = new ToolNode(tools, {
+  //   handleToolErrors: true,
+  // });
+  const mcpToolNode = new MCPToolNode(tools);
 
   function routeAfterLLM(state: typeof AgentState.State) {
     const lastMessage = state.messages[state.messages.length - 1] as AIMessage;
@@ -46,52 +48,83 @@ export async function buildAgentGraph({
     return END;
   }
 
-  return new StateGraph(AgentState)
-    .addNode("llm", llmNode)
-    .addNode("tools", toolNode)
-    .addNode("webResearch", async (state) => {
-      const lastMessage = state.messages[
-        state.messages.length - 1
-      ] as AIMessage;
-      const call = lastMessage.tool_calls!.find(
-        (tc) => tc.name === "webResearch",
-      )!;
-      const task = (call.args as { task: string }).task;
+  return (
+    new StateGraph(AgentState)
+      .addNode("llm", llmNode)
+      // .addNode("tools", toolNode)
+      .addNode("tools", (state) => mcpToolNode.invoke(state))
+      .addNode("webResearch", async (state) => {
+        const lastMessage = state.messages[
+          state.messages.length - 1
+        ] as AIMessage;
+        const call = lastMessage.tool_calls!.find(
+          (tc) => tc.name === "webResearch",
+        );
+        if (!call) {
+          throw new Error(
+            "webResearch node reached without a webResearch call.",
+          );
+        }
 
-      const response = await webSearchAgent.invoke({
-        task: task,
-      });
-      return {
-        subgraphResults: [
-          {
-            id: call.id!,
-            agent: "webResearch",
-            success: true,
-            result: response.result,
-          },
-        ],
-        messages: [
-          new ToolMessage({
-            tool_call_id: call.id!,
-            content: response.result,
-          }),
-        ],
-      };
-    })
+        if (!call.id) {
+          throw new Error(
+            "Invalid webResearch tool call: missing tool_call_id.",
+          );
+        }
+        const task = (call.args as { task: string }).task;
 
-    .addEdge(START, "llm")
+        const response = await webSearchAgent.invoke({
+          task: task,
+        });
+        return {
+          subgraphResults: [
+            {
+              id: call.id,
+              agent: "webResearch",
+              success: true,
+              result: response.result,
+            },
+          ],
+          messages: [
+            new ToolMessage({
+              tool_call_id: call.id,
+              content: response.result,
+            }),
+          ],
+        };
+      })
 
-    .addConditionalEdges("llm", routeAfterLLM, {
-      tools: "tools",
-      webResearch: "webResearch",
-      [END]: END,
-    })
+      .addEdge(START, "llm")
 
-    .addEdge("tools", "llm")
-    .addEdge("webResearch", "llm")
+      .addConditionalEdges("llm", routeAfterLLM, {
+        tools: "tools",
+        webResearch: "webResearch",
+        [END]: END,
+      })
 
-    .compile();
+      .addEdge("tools", "llm")
+      .addEdge("webResearch", "llm")
+
+      .compile()
+  );
 }
+// Conditional Edge for mcpToolNode if there is no other routing envolved
+// .addConditionalEdges("llm", (state) => {
+//   const lastMessage = state.messages.at(-1);
+
+//   if (
+//     lastMessage?.type === "ai" &&
+//     "tool_calls" in lastMessage &&
+//     lastMessage.tool_calls?.length
+//   ) {
+//     return "tools";
+//   }
+
+//   return END;
+// }, {
+//   tools: "tools",
+//   [END]: END,
+// })
 
 // // Custom Router Node
 // function routerCondition(state: typeof AgentState.State) {
