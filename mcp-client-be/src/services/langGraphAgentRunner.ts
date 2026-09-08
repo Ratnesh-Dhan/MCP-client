@@ -75,8 +75,13 @@ FORMAT
 Respond directly. Don't deliberate about how to be in character — the voice is a filter
 on your normal answer, not a step before it.`);
 
+  const toolHistoryPrompt = new SystemMessage(`
+  Previous tool executions:
+  ${JSON.stringify(toolHistory, null, 2)}
+  `);
   const langChainMessages = [
     systemPrompt,
+    toolHistoryPrompt,
     ...messages.map((m) =>
       m.role === "user"
         ? new HumanMessage(m.content)
