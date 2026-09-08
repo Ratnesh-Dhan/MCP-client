@@ -1,7 +1,7 @@
 import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
-import { Message } from "../types/allTypes.js";
+import { MessageNew } from "../types/allTypes.js";
 
-export function toLangChainMessage(message: Message) {
+export function toLangChainMessage(message: MessageNew) {
   switch (message.role) {
     case "user":
       return new HumanMessage(message.content);

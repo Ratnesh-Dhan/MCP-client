@@ -1,10 +1,10 @@
-// export type Message = {
-//   id: string;
-//   role: "user" | "assistant";
-//   content: string;
-// };
-
 export type Message = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type MessageNew = {
   id: string;
   role: "user" | "assistant" | "tool";
   content: string;
