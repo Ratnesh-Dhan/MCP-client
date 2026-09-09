@@ -34,7 +34,7 @@ export const webAgentGraph = async (model: string, network: string) => {
     })
     .addEdge(START, "research")
     .addEdge("research", END)
-    .compile({ checkpointer: true }); //for the web researcher unless you actually want it to remember its state across separate calls.
+    .compile(); //for the web researcher unless you actually want it to remember its state across separate calls.
 
   return researchGraph;
 };

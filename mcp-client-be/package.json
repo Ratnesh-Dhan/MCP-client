@@ -27,6 +27,7 @@
     "@modelcontextprotocol/sdk": "^1.30.0",
     "cors": "^2.8.6",
     "deepagents": "^1.13.3",
+    "dotenv": "^17.4.2",
     "duck-duck-scrape": "^2.2.7",
     "express": "^5.2.1",
     "json-schema-to-zod": "^2.8.1",

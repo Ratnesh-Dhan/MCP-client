@@ -25,7 +25,12 @@ export async function buildAgentGraph({
     console.log("LANGGRAPH: Calling Ollama");
     const responseMessage = await llmWithTools.invoke(state.messages);
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
-    // console.log("LANGGRAPH: Tool calls: ", responseMessage.tool_calls);
+    console.log(
+      "LANGGRAPH: Tool calls: ",
+      JSON.stringify(responseMessage.tool_calls, null, 2),
+    );
+    console.log("LANGGRAPH: Message count: ", state.messages.length);
+
     return { messages: [responseMessage], llmCalls: 1 };
   }
 
@@ -54,6 +59,7 @@ export async function buildAgentGraph({
       // .addNode("tools", toolNode)
       .addNode("tools", (state) => mcpToolNode.invoke(state))
       .addNode("webResearch", async (state) => {
+        console.log("Node webResearch");
         const lastMessage = state.messages[
           state.messages.length - 1
         ] as AIMessage;
@@ -72,10 +78,11 @@ export async function buildAgentGraph({
           );
         }
         const task = (call.args as { task: string }).task;
-
+        console.log("TASK::: ", task);
         const response = await webSearchAgent.invoke({
           task: task,
         });
+        console.log(response);
         return {
           subgraphResults: [
             {

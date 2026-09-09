@@ -6,9 +6,11 @@ export async function connectMCP(
   name: string,
   command: string,
   args: string[],
+  env?: Record<string, string>,
   cwd?: string,
+  version?: string,
 ) {
-  return mcpManager.connect(name, command, args, cwd);
+  return mcpManager.connect(name, command, args, env, cwd, version);
 }
 
 export async function listMCPTools(server: string) {
