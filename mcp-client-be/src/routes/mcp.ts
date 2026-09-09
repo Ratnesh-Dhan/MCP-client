@@ -11,7 +11,7 @@ const MCProuter = Router();
 MCProuter.post("/connect", async (req, res) => {
   try {
     const { name, command, args, cwd } = req.body;
-    await connectMCP(name, command, args ?? [], cwd);
+    await connectMCP(name, command, args ?? [], {}, cwd);
     res.json({ success: true, server: name });
   } catch (error) {
     console.error(error);

@@ -121,7 +121,7 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
                 setActiveTool(null);
                 break;
               case "error":
-                console.error("Agent error:", data.message);
+                console.log("Agent error:", data.message);
                 break;
             }
             setChat((prev) => {

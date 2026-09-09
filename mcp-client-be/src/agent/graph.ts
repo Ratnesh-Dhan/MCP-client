@@ -1,9 +1,14 @@
+// import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { AgentState } from "./state.js";
 import { getAgentTools } from "./tools.js";
 import { createOllamaModel } from "./nodes/llm.js";
 import { buildAgentGraphType } from "../types/allTypes.js";
+import { getCurrentNetwork } from "../services/currentNetworkDB.js";
+import { webAgentGraph } from "./subgraphs/webAgent/graph.js";
+import { webResearchTool } from "./subgraphs/asTools/webAgentTool.js";
+import { AIMessage, ToolMessage } from "@langchain/core/messages";
+import { MCPToolNode } from "./nodes/MCPToolNode.js";
 
 export async function buildAgentGraph({
   model,
@@ -11,33 +16,187 @@ export async function buildAgentGraph({
 }: buildAgentGraphType) {
   const tools = await getAgentTools(serverName);
 
-  const llmWithTools = await createOllamaModel(model, tools);
+  const llmWithTools = await createOllamaModel(model, [
+    ...tools,
+    webResearchTool,
+  ]);
 
   async function llmNode(state: typeof AgentState.State) {
     console.log("LANGGRAPH: Calling Ollama");
     const responseMessage = await llmWithTools.invoke(state.messages);
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
-    console.log("LANGGRAPH: Tool calls: ", responseMessage.tool_calls);
-    return { messages: [responseMessage] };
+    console.log(
+      "LANGGRAPH: Tool calls: ",
+      JSON.stringify(responseMessage.tool_calls, null, 2),
+    );
+    console.log("LANGGRAPH: Message count: ", state.messages.length);
+
+    return { messages: [responseMessage], llmCalls: 1 };
   }
 
-  const toolNode = new ToolNode(tools);
+  const webSearchAgent = await webAgentGraph(model, getCurrentNetwork()["url"]);
 
-  return new StateGraph(AgentState)
-    .addNode("llm", llmNode)
-    .addNode("tools", toolNode)
+  // const toolNode = new ToolNode(tools, {
+  //   handleToolErrors: true,
+  // });
+  const mcpToolNode = new MCPToolNode(tools);
 
-    .addEdge(START, "llm")
+  function routeAfterLLM(state: typeof AgentState.State) {
+    const lastMessage = state.messages[state.messages.length - 1] as AIMessage;
+    if (lastMessage.tool_calls?.length) {
+      const wantsWebResearch = lastMessage.tool_calls.some(
+        (tc) => tc.name === "webResearch",
+      );
+      if (wantsWebResearch) return "webResearch";
+      return "tools";
+    }
+    return END;
+  }
 
-    .addConditionalEdges("llm", toolsCondition, {
-      tools: "tools",
-      [END]: END,
-    })
+  return (
+    new StateGraph(AgentState)
+      .addNode("llm", llmNode)
+      // .addNode("tools", toolNode)
+      .addNode("tools", (state) => mcpToolNode.invoke(state))
+      .addNode("webResearch", async (state) => {
+        console.log("Node webResearch");
+        const lastMessage = state.messages[
+          state.messages.length - 1
+        ] as AIMessage;
+        const call = lastMessage.tool_calls!.find(
+          (tc) => tc.name === "webResearch",
+        );
+        if (!call) {
+          throw new Error(
+            "webResearch node reached without a webResearch call.",
+          );
+        }
 
-    .addEdge("tools", "llm")
+        if (!call.id) {
+          throw new Error(
+            "Invalid webResearch tool call: missing tool_call_id.",
+          );
+        }
+        const task = (call.args as { task: string }).task;
+        console.log("TASK::: ", task);
+        const response = await webSearchAgent.invoke({
+          task: task,
+        });
+        console.log(response);
+        return {
+          subgraphResults: [
+            {
+              id: call.id,
+              agent: "webResearch",
+              success: true,
+              result: response.result,
+            },
+          ],
+          messages: [
+            new ToolMessage({
+              tool_call_id: call.id,
+              content: response.result,
+            }),
+          ],
+        };
+      })
 
-    .compile();
+      .addEdge(START, "llm")
+
+      .addConditionalEdges("llm", routeAfterLLM, {
+        tools: "tools",
+        webResearch: "webResearch",
+        [END]: END,
+      })
+
+      .addEdge("tools", "llm")
+      .addEdge("webResearch", "llm")
+
+      .compile()
+  );
 }
+// Conditional Edge for mcpToolNode if there is no other routing envolved
+// .addConditionalEdges("llm", (state) => {
+//   const lastMessage = state.messages.at(-1);
+
+//   if (
+//     lastMessage?.type === "ai" &&
+//     "tool_calls" in lastMessage &&
+//     lastMessage.tool_calls?.length
+//   ) {
+//     return "tools";
+//   }
+
+//   return END;
+// }, {
+//   tools: "tools",
+//   [END]: END,
+// })
+
+// // Custom Router Node
+// function routerCondition(state: typeof AgentState.State) {
+//   const lastMessage = state.messages[state.messages.length - 1];
+//   // Check if the last message is a tool call
+//   if (lastMessage.toolHistory && lastMessage.tool_calls.length > 0) {
+//     return "tools";
+//   }
+//   // Look at the LLM's text content. If it mentions needing deep research, route to the sub-graph
+//   if (
+//     lastMessage.content &&
+//     typeof lastMessage.content === "string" &&
+//     lastMessage.content.includes("[TRIGGER_RESEARCH]")
+//   ) {
+//     return "researcher_agent";
+//   }
+//   return END;
+// }
+
+// latest Graph Architecture
+//       ┌─────────────────────┐
+//       │     Parent Graph    │
+//       │                     │
+//       │ AgentState          │
+//       │                     │
+//       │ messages            │
+//       │ toolHistory         │
+//       │ iteration           │
+//       │ subgraphResults     │
+//       └──────────┬──────────┘
+//                  │
+//          routing decision
+//                  │
+// ┌────────────────┼────────────────┐
+// │                │                │
+// ▼                ▼                ▼
+// tools         webResearch           END
+// │                │
+// │                ▼
+// │       ┌──────────────────┐
+// │       │ Research Graph   │
+// │       │                  │
+// │       │ ResearchState    │
+// │       │                  │
+// │       │ task             │
+// │       │ result           │
+// │       └────────┬─────────┘
+// │                │
+// │                ▼
+// │       ┌──────────────────┐
+// │       │   Deep Agent     │
+// │       │                  │
+// │       │ private state    │
+// │       │ planning         │
+// │       │ tools            │
+// │       │ messages         │
+// │       │ etc.             │
+// │       └────────┬─────────┘
+// │                │
+// └────────────────┼───────────────┐
+//                  ▼               │
+//             Parent LLM ◄─────────┘
+//                  │
+//                  ▼
+//                 END
 
 // LangGraph Router Node (Inside the Graph Architecture) IF WE WANT TO ROUTE FROM GRAPH
 

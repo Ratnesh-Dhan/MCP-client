@@ -76,9 +76,9 @@ Respond directly. Don't deliberate about how to be in character — the voice is
 on your normal answer, not a step before it.`);
 
   const toolHistoryPrompt = new SystemMessage(`
-    Previous tool execution in this task:
-    ${JSON.stringify(toolHistory, null, 2)}
-    `);
+  Previous tool executions:
+  ${JSON.stringify(toolHistory, null, 2)}
+  `);
   const langChainMessages = [
     systemPrompt,
     toolHistoryPrompt,
@@ -93,7 +93,7 @@ on your normal answer, not a step before it.`);
     try {
       // streamEvents v2 provides fine-grained node and token events
       const eventStream = graph.streamEvents(
-        { messages: langChainMessages },
+        { messages: langChainMessages, toolHistory: [], llmCalls: 0 },
         { version: "v2", signal },
       );
 

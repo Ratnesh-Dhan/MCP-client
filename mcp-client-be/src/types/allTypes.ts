@@ -4,6 +4,20 @@ export type Message = {
   content: string;
 };
 
+export type MessageNew = {
+  id: string;
+  role: "user" | "assistant" | "tool";
+  content: string;
+  tool_calls?: {
+    id: string;
+    name: string;
+    args: Record<string, unknown>;
+  }[];
+
+  tool_call_id?: string;
+  name?: string;
+};
+
 export type Chat = {
   messages: Message[];
   model: string;
