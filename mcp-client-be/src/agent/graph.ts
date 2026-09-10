@@ -7,7 +7,7 @@ import { buildAgentGraphType } from "../types/allTypes.js";
 import { getCurrentNetwork } from "../services/currentNetworkDB.js";
 import { webAgentGraph } from "./subgraphs/webAgent/graph.js";
 import { webResearchTool } from "./subgraphs/asTools/webAgentTool.js";
-import { AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
+import { AIMessage, SystemMessage, ToolMessage, trimMessages } from "@langchain/core/messages";
 import { MCPToolNode } from "./nodes/MCPToolNode.js";
 import { main_prompt } from "../lib/prompts.js";
 
@@ -22,15 +22,18 @@ export async function buildAgentGraph({
     webResearchTool,
   ]);
 
+  const messageTrimmer = trimMessages({maxTokens: 10, strategy: "last", tokenCounter: (msgs)=>msgs.length, includeSystem: true, startOn: "human"})
+
   async function llmNode(state: typeof AgentState.State) {
     console.log("LANGGRAPH: Calling Ollama");
+    const trimmedMessages = await messageTrimmer.invoke(state.messages)
     const systemPrompt = new SystemMessage(main_prompt);
     const toolHistoryPrompt = new SystemMessage(`
         Previous tool executions:
         ${JSON.stringify(state.toolHistory, null, 2)}
       `)
 
-    const fullPromptArray = [systemPrompt, toolHistoryPrompt, ...state.messages];
+    const fullPromptArray = [systemPrompt, toolHistoryPrompt, ...trimmedMessages];
     const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
     console.log(
