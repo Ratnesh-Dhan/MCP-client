@@ -1,14 +1,15 @@
 // import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { AgentState } from "./state.js";
+import { AgentState, ToolExecution } from "./state.js";
 import { getAgentTools } from "./tools.js";
 import { createOllamaModel } from "./nodes/llm.js";
 import { buildAgentGraphType } from "../types/allTypes.js";
 import { getCurrentNetwork } from "../services/currentNetworkDB.js";
 import { webAgentGraph } from "./subgraphs/webAgent/graph.js";
 import { webResearchTool } from "./subgraphs/asTools/webAgentTool.js";
-import { AIMessage, ToolMessage } from "@langchain/core/messages";
+import { AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { MCPToolNode } from "./nodes/MCPToolNode.js";
+import { main_prompt } from "../lib/prompts.js";
 
 export async function buildAgentGraph({
   model,
@@ -23,7 +24,14 @@ export async function buildAgentGraph({
 
   async function llmNode(state: typeof AgentState.State) {
     console.log("LANGGRAPH: Calling Ollama");
-    const responseMessage = await llmWithTools.invoke(state.messages);
+    const systemPrompt = new SystemMessage(main_prompt);
+    const toolHistoryPrompt = new SystemMessage(`
+        Previous tool executions:
+        ${JSON.stringify(state.toolHistory, null, 2)}
+      `)
+
+    const fullPromptArray = [systemPrompt, toolHistoryPrompt, ...state.messages];
+    const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
     console.log(
       "LANGGRAPH: Tool calls: ",
@@ -57,7 +65,8 @@ export async function buildAgentGraph({
     new StateGraph(AgentState)
       .addNode("llm", llmNode)
       // .addNode("tools", toolNode)
-      .addNode("tools", (state) => mcpToolNode.invoke(state))
+      .addNode("tools", mcpToolNode.invoke.bind(mcpToolNode))
+      // .addNode("tools", (state) => mcpToolNode.invoke(state))
       .addNode("webResearch", async (state) => {
         console.log("Node webResearch");
         const lastMessage = state.messages[
@@ -83,21 +92,29 @@ export async function buildAgentGraph({
           task: task,
         });
         console.log(response);
+          const executionRecord: ToolExecution = {
+            toolCallId: call.id,
+            tool: call.name,
+            args: call.args,
+            success: true
+          };
         return {
-          subgraphResults: [
-            {
-              id: call.id,
-              agent: "webResearch",
-              success: true,
-              result: response.result,
-            },
-          ],
+          // subgraphResults: [
+          //   {
+          //     id: call.id,
+          //     agent: "webResearch",
+          //     success: true,
+          //     result: response.result,
+          //   },
+          // ],
           messages: [
             new ToolMessage({
               tool_call_id: call.id,
               content: response.result,
             }),
           ],
+          // 2. Triggers the custom array reducer: [...current, ...update]
+          toolHistory: [executionRecord]
         };
       })
 

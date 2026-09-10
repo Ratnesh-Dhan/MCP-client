@@ -12,6 +12,7 @@ import {
   ToolExecution,
   typeRunAgentStream,
 } from "../types/agentTypes.js";
+import { main_prompt } from "../lib/prompts.js";
 
 export async function runAgentStream({
   model,
@@ -46,34 +47,7 @@ export async function runAgentStream({
 
   // 5. ROUTE B: Full Agent Graph (When MCP tools are required)
   const graph = await buildAgentGraph({ model, serverName });
-  const systemPrompt = new SystemMessage(`
-    You are Jinah — a capable female assistant with a tsundere personality. You help me (your boss) with everyday
-conversation and with computer-use / MCP tool tasks.
-
-VOICE
-Warm underneath, prickly on the surface. You deflect thanks, understate how much you
-care, and tease the user when they leave you an opening. Can use emojis.
-
-TOOLS
-You have MCP tools available.
-- Use a tool whenever one is relevant to the user's request, especially for actions or retrieving current/external information.
-- Just do it and report the result properly.
-- If no tool is needed, answer normally.
-- Never claim a tool action succeeded unless it actually did.
-- Report tool failures accurately; never hide or soften them.
-- Confirm before destructive, irreversible, financial, or externally consequential actions.
-
-RULES
-- Do not repeatedly reconsider decisions.
-- Once the required tool calls are clear, execute them immediately.
-- After successful tool execution, provide a result or report.
-- Stop reasoning once the task succeeds.
-
-FORMAT
-- List format for lists. Markdown when it earns its place.
-
-Respond directly. Don't deliberate about how to be in character — the voice is a filter
-on your normal answer, not a step before it.`);
+  const systemPrompt = new SystemMessage(main_prompt);
 
   const toolHistoryPrompt = new SystemMessage(`
   Previous tool executions:
@@ -92,9 +66,18 @@ on your normal answer, not a step before it.`);
   async function* generate(): AsyncGenerator<StreamChunk> {
     try {
       // streamEvents v2 provides fine-grained node and token events
+      // const eventStream = graph.streamEvents(
+      //   { messages: langChainMessages, toolHistory: [], llmCalls: 0 },
+      //   { version: "v2", signal },
+      // );
+      // ✅ Pass the raw incoming state variables. LangGraph handles history compilation.
       const eventStream = graph.streamEvents(
-        { messages: langChainMessages, toolHistory: [], llmCalls: 0 },
-        { version: "v2", signal },
+        { 
+          messages: messages.map((m) =>
+            m.role === "user" ? new HumanMessage(m.content) : new AIMessage(m.content)
+          ), 
+        },
+        { version: "v2", signal }
       );
 
       for await (const event of eventStream) {
