@@ -22,7 +22,6 @@ export const AgentState = Annotation.Root({
   }),
 });
 
-
 // export type SubgraphExecution = {
 //   id: string;
 //   agent: string;
@@ -30,8 +29,7 @@ export const AgentState = Annotation.Root({
 //   result?: unknown;
 //   error?: string;
 // };
-
-//   subgraphResults: Annotation<SubgraphExecution[]>({
-//     reducer: (current, update) => [...current, ...update],
-//     default: () => [],
-//   }),
+// subgraphResults: Annotation<SubgraphExecution[]>({
+//   reducer: (current, update) => [...current, ...update],
+//   default: () => [],
+// }),

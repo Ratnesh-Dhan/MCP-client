@@ -24,17 +24,21 @@ export const webAgentGraph = async (model: string, network: string) => {
       console.dir(response, { depth: null });
 
       const lastMessage = response.messages[response.messages.length - 1];
-      console.log("LANGGRAPH: Web Research Response: ", lastMessage.content);
+      if (!lastMessage) {
+        throw new Error("Web research agent returned no messages.");
+      }
+      const result =
+        typeof lastMessage.content === "string"
+          ? lastMessage.content
+          : JSON.stringify(lastMessage.content);
+      console.log("[RESEARCH GRAPH] results: ", result);
       return {
-        result:
-          typeof lastMessage.content === "string"
-            ? lastMessage.content
-            : JSON.stringify(lastMessage.content),
+        result,
       };
     })
     .addEdge(START, "research")
     .addEdge("research", END)
-    .compile(); //for the web researcher unless you actually want it to remember its state across separate calls.
+    .compile();
 
   return researchGraph;
 };
