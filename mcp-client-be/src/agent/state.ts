@@ -11,6 +11,16 @@ export type ToolExecution = {
 export const AgentState = Annotation.Root({
   ...MessagesAnnotation.spec,
 
+  summary: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "",
+  }),
+
+  summarizedMessageCount: Annotation<number>({
+    reducer: (_, update) => update,
+    default: () => 0,
+  }),
+
   toolHistory: Annotation<ToolExecution[]>({
     reducer: (current, update) => [...current, ...update],
     default: () => [],
@@ -21,15 +31,3 @@ export const AgentState = Annotation.Root({
     default: () => 0,
   }),
 });
-
-// export type SubgraphExecution = {
-//   id: string;
-//   agent: string;
-//   success: boolean;
-//   result?: unknown;
-//   error?: string;
-// };
-// subgraphResults: Annotation<SubgraphExecution[]>({
-//   reducer: (current, update) => [...current, ...update],
-//   default: () => [],
-// }),

@@ -1,6 +1,6 @@
 // import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { AgentState, ToolExecution } from "./state.js";
+import { AgentState } from "./state.js";
 import { getAgentTools } from "./tools.js";
 import { createOllamaModel } from "./nodes/llm.js";
 import { buildAgentGraphType } from "../types/allTypes.js";
@@ -15,6 +15,7 @@ import {
 } from "@langchain/core/messages";
 import { MCPToolNode } from "./nodes/MCPToolNode.js";
 import { main_prompt } from "../lib/prompts.js";
+import { createSummaryModel, summarizeNode } from "./nodes/summary.js";
 
 export async function buildAgentGraph({
   model,
@@ -26,6 +27,9 @@ export async function buildAgentGraph({
     ...tools,
     webResearchTool,
   ]);
+
+  // Summarizer initialization
+  const summarizerModel = await createSummaryModel(model);
 
   const messageTrimmer = trimMessages({
     maxTokens: 10,
@@ -40,13 +44,18 @@ export async function buildAgentGraph({
     // Context History (below)
     const trimmedMessages = await messageTrimmer.invoke(state.messages);
     const systemPrompt = new SystemMessage(main_prompt);
+    const summaryPrompt = new SystemMessage(`
+      Previous conversation summary:
+      ${state.summary || "No previous conversation summary."}
+      `);
     const toolHistoryPrompt = new SystemMessage(`
-        Previous tool executions:
-        ${JSON.stringify(state.toolHistory, null, 2)}
+        Recent tool executions:
+        ${JSON.stringify(state.toolHistory.slice(-10), null, 2)}
       `);
 
     const fullPromptArray = [
       systemPrompt,
+      summaryPrompt,
       toolHistoryPrompt,
       ...trimmedMessages,
     ];
@@ -81,10 +90,25 @@ export async function buildAgentGraph({
     return END;
   }
 
+  // Summary router
+  const SUMMARY_TRIGGER = 14;
+  function routeAfterSummaryCheck(state: typeof AgentState.State) {
+    const unsummarizedCount =
+      state.messages.length - state.summarizedMessageCount;
+
+    if (unsummarizedCount > SUMMARY_TRIGGER) {
+      return "summarize";
+    }
+
+    return "llm";
+  }
+  // Summary router
+
   return (
     new StateGraph(AgentState)
+      .addNode("maybeSummarize", (state) => state)
+      .addNode("summarize", (state) => summarizeNode(state, summarizerModel))
       .addNode("llm", llmNode)
-      // .addNode("tools", toolNode)
       .addNode("tools", mcpToolNode.invoke.bind(mcpToolNode))
       // .addNode("tools", (state) => mcpToolNode.invoke(state))
       .addNode("webResearch", async (state) => {
@@ -156,7 +180,14 @@ export async function buildAgentGraph({
         }
       })
 
-      .addEdge(START, "llm")
+      // .addEdge(START, "llm")
+      .addEdge(START, "maybeSummarize")
+
+      .addConditionalEdges("maybeSummarize", routeAfterSummaryCheck, {
+        summarize: "summarize",
+        llm: "llm",
+      })
+      .addEdge("summarize", "llm")
 
       .addConditionalEdges("llm", routeAfterLLM, {
         tools: "tools",
