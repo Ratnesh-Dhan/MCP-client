@@ -16,6 +16,7 @@ import {
 import { MCPToolNode } from "./nodes/MCPToolNode.js";
 import { main_prompt } from "../lib/prompts.js";
 import { createSummaryModel, summarizeNode } from "./nodes/summary.js";
+import { looksLikePlan, recoveryFromPlanOnly } from "./nodes/recoveryNode.js";
 
 export async function buildAgentGraph({
   model,
@@ -86,6 +87,11 @@ export async function buildAgentGraph({
       );
       if (wantsWebResearch) return "webResearch";
       return "tools";
+    }
+    // If model describe a plan but did not call a tool.
+    const isPlan = looksLikePlan(lastMessage.content);
+    if (isPlan && state.planRetryCount < 2) {
+      return "recoverFromPlan";
     }
     return END;
   }
@@ -179,6 +185,7 @@ export async function buildAgentGraph({
           };
         }
       })
+      .addNode('recoverFromPlan', recoveryFromPlanOnly)
 
       // .addEdge(START, "llm")
       .addEdge(START, "maybeSummarize")
@@ -192,11 +199,13 @@ export async function buildAgentGraph({
       .addConditionalEdges("llm", routeAfterLLM, {
         tools: "tools",
         webResearch: "webResearch",
+        recoveryFromPlan: "recoverFromPlan",
         [END]: END,
       })
 
       .addEdge("tools", "llm")
       .addEdge("webResearch", "llm")
+      .addEdge("recoverFromPlan", "llm")
 
       .compile()
   );

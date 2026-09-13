@@ -30,4 +30,9 @@ export const AgentState = Annotation.Root({
     reducer: (current, update) => current + update,
     default: () => 0,
   }),
+
+  planRetryCount: Annotation<number>({
+    reducer: (_, update) => update,
+    default: ()=> 0,
+  }),
 });
