@@ -90,7 +90,11 @@ export async function buildAgentGraph({
     }
     // If model describe a plan but did not call a tool.
     const isPlan = looksLikePlan(lastMessage.content);
-    if (isPlan && state.planRetryCount < 2) {
+    // if model gave empty response while planning
+    const content = typeof lastMessage.content === "string" ? lastMessage.content.trim() : JSON.stringify(lastMessage.content).trim();
+    const isEmptyResponse = content.length === 0;
+
+    if ((isPlan || isEmptyResponse) && state.planRetryCount < 2) {
       return "recoverFromPlan";
     }
     return END;
@@ -158,6 +162,7 @@ export async function buildAgentGraph({
                 success: true,
               },
             ],
+            planRetryCount: 0
           };
         } catch (error) {
           return {
@@ -182,6 +187,7 @@ export async function buildAgentGraph({
                     : JSON.stringify(error),
               },
             ],
+            planRetryCount: 0,
           };
         }
       })

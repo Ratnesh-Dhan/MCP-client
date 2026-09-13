@@ -57,6 +57,7 @@ export class MCPToolNode {
               success: false,
               error,
             } satisfies ToolExecution,
+            planRetryCount: 0
           };
         }
         try {
@@ -77,6 +78,7 @@ export class MCPToolNode {
               args,
               success: true,
             } satisfies ToolExecution,
+            planRetryCount: 0,
           };
         } catch (error) {
           const errorMessage =
@@ -98,6 +100,7 @@ export class MCPToolNode {
               success: false,
               error: errorMessage,
             } satisfies ToolExecution,
+            planRetryCount: 0,
           };
         }
       }),
