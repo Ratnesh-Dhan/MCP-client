@@ -60,6 +60,16 @@ export async function buildAgentGraph({
       toolHistoryPrompt,
       ...trimmedMessages,
     ];
+    console.log(
+      "[FULLPROMPT ARRAY SHIT INPUT]",
+      fullPromptArray.map((message, index) => ({
+        index,
+        type: message.constructor.name,
+        content: message.content,
+        tool_calls: (message as AIMessage).tool_calls,
+        tool_call_id: (message as ToolMessage).tool_call_id,
+      })),
+    );
     // Context History (above)
     const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
@@ -91,7 +101,10 @@ export async function buildAgentGraph({
     // If model describe a plan but did not call a tool.
     const isPlan = looksLikePlan(lastMessage.content);
     // if model gave empty response while planning
-    const content = typeof lastMessage.content === "string" ? lastMessage.content.trim() : JSON.stringify(lastMessage.content).trim();
+    const content =
+      typeof lastMessage.content === "string"
+        ? lastMessage.content.trim()
+        : JSON.stringify(lastMessage.content).trim();
     const isEmptyResponse = content.length === 0;
 
     if ((isPlan || isEmptyResponse) && state.planRetryCount < 2) {
@@ -162,7 +175,7 @@ export async function buildAgentGraph({
                 success: true,
               },
             ],
-            planRetryCount: 0
+            planRetryCount: 0,
           };
         } catch (error) {
           return {
@@ -191,7 +204,7 @@ export async function buildAgentGraph({
           };
         }
       })
-      .addNode('recoverFromPlan', recoveryFromPlanOnly)
+      .addNode("recoverFromPlan", recoveryFromPlanOnly)
 
       // .addEdge(START, "llm")
       .addEdge(START, "maybeSummarize")
