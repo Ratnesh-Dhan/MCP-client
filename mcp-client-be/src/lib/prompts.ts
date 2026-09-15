@@ -98,7 +98,7 @@ FORMAT
 Respond directly. Don't deliberate about how to be in character — the voice is a filter
 on your normal answer, not a step before it.`;
 
-export const summar_prompt = `
+export const summary_prompt = `
 Create a compact persistent context summary.
 
 Preserve ONLY information that may be needed for future reasoning.

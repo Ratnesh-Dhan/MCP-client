@@ -1,3 +1,4 @@
+import { BaseMessage } from "@langchain/core/messages";
 import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 
 export type ToolExecution = {
@@ -16,7 +17,7 @@ export const AgentState = Annotation.Root({
     default: () => "",
   }),
 
-  summarizedMessageCount: Annotation<number>({
+  summarizedLastHumanMessageCount: Annotation<number>({
     reducer: (_, update) => update,
     default: () => 0,
   }),
@@ -33,6 +34,6 @@ export const AgentState = Annotation.Root({
 
   planRetryCount: Annotation<number>({
     reducer: (_, update) => update,
-    default: ()=> 0,
+    default: () => 0,
   }),
 });

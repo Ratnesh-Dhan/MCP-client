@@ -1,23 +1,19 @@
-import { buildAgentGraph } from "../agent/graph.js";
 import { getAgentTools } from "../agent/tools.js";
 import { classifyIntent } from "./classifier.js";
 import { runDirectChatStream } from "./directChatRunner.js";
-import {
-  SystemMessage,
-  HumanMessage,
-  AIMessage,
-} from "@langchain/core/messages";
+import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import {
   StreamChunk,
   ToolExecution,
   typeRunAgentStream,
 } from "../types/agentTypes.js";
-import { main_prompt } from "../lib/prompts.js";
+import { getAgentGraph } from "../agent/graphCache.js";
 
 export async function runAgentStream({
   model,
   messages,
   serverName,
+  threadId,
   signal,
 }: typeRunAgentStream) {
   // 1. Get available MCP tools for this server
@@ -29,55 +25,44 @@ export async function runAgentStream({
   const lastMessages = messages.slice(-8);
   const toolHistory: ToolExecution[] = [];
 
-  // 3. Classify intent (Fast non-streaming call)
-  const mode = await classifyIntent({
-    model,
-    userMessage: lastUserMessage,
-    conversation: lastMessages,
-    availableTools: toolNames,
-    signal: signal,
-  });
+  // // 3. Classify intent (Fast non-streaming call)
+  // const mode = await classifyIntent({
+  //   model,
+  //   userMessage: lastUserMessage,
+  //   conversation: lastMessages,
+  //   availableTools: toolNames,
+  //   signal: signal,
+  // });
 
-  console.log(`[ROUTER]: Executing request via '${mode.toUpperCase()}' mode.`);
+  // console.log(`[ROUTER]: Executing request via '${mode.toUpperCase()}' mode.`);
 
-  // 4. ROUTE A: Direct Chat (Fast path - no LangGraph overhead)
-  if (mode === "chat_fast" || mode === "chat_think") {
-    return runDirectChatStream({ model, messages, signal, mode });
-  }
+  // // 4. ROUTE A: Direct Chat (Fast path - no LangGraph overhead)
+  // if (mode === "chat_fast" || mode === "chat_think") {
+  //   return runDirectChatStream({ model, messages, signal, mode });
+  // }
 
   // 5. ROUTE B: Full Agent Graph (When MCP tools are required)
-  const graph = await buildAgentGraph({ model, serverName });
-  const systemPrompt = new SystemMessage(main_prompt);
-
-  const toolHistoryPrompt = new SystemMessage(`
-  Previous tool executions:
-  ${JSON.stringify(toolHistory, null, 2)}
-  `);
-  const langChainMessages = [
-    systemPrompt,
-    toolHistoryPrompt,
-    ...messages.map((m) =>
-      m.role === "user"
-        ? new HumanMessage(m.content)
-        : new AIMessage(m.content),
-    ),
-  ];
+  const graph = await getAgentGraph(model, serverName);
 
   async function* generate(): AsyncGenerator<StreamChunk> {
     try {
-      // streamEvents v2 provides fine-grained node and token events
-      // const eventStream = graph.streamEvents(
-      //   { messages: langChainMessages, toolHistory: [], llmCalls: 0 },
-      //   { version: "v2", signal },
-      // );
       // ✅ Pass the raw incoming state variables. LangGraph handles history compilation.
       const eventStream = graph.streamEvents(
-        { 
-          messages: messages.map((m) =>
-            m.role === "user" ? new HumanMessage(m.content) : new AIMessage(m.content)
-          ), 
+        {
+          // messages: messages.map((m) =>
+          //   m.role === "user"
+          //     ? new HumanMessage(m.content)
+          //     : new AIMessage(m.content),
+          // ),
+          messages: [new HumanMessage(lastUserMessage)],
         },
-        { version: "v2", signal }
+        {
+          version: "v2",
+          configurable: {
+            thread_id: threadId,
+          },
+          signal,
+        },
       );
 
       for await (const event of eventStream) {

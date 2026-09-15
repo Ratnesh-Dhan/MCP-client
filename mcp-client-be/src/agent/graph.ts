@@ -11,16 +11,20 @@ import {
   AIMessage,
   SystemMessage,
   ToolMessage,
-  trimMessages,
 } from "@langchain/core/messages";
 import { MCPToolNode } from "./nodes/MCPToolNode.js";
 import { main_prompt } from "../lib/prompts.js";
 import { createSummaryModel, summarizeNode } from "./nodes/summary.js";
 import { looksLikePlan, recoveryFromPlanOnly } from "./nodes/recoveryNode.js";
+import {
+  getHumanMessageIndices,
+  trimMessages,
+} from "./supports/trimMessages.js";
 
 export async function buildAgentGraph({
   model,
   serverName,
+  checkpointer,
 }: buildAgentGraphType) {
   const tools = await getAgentTools(serverName);
 
@@ -32,18 +36,10 @@ export async function buildAgentGraph({
   // Summarizer initialization
   const summarizerModel = await createSummaryModel(model);
 
-  const messageTrimmer = trimMessages({
-    maxTokens: 10,
-    strategy: "last",
-    tokenCounter: (msgs) => msgs.length,
-    includeSystem: true,
-    startOn: "human",
-  });
-
   async function llmNode(state: typeof AgentState.State) {
     console.log("LANGGRAPH: Calling Ollama");
     // Context History (below)
-    const trimmedMessages = await messageTrimmer.invoke(state.messages);
+    const trimmedMessages = trimMessages(state);
     const systemPrompt = new SystemMessage(main_prompt);
     const summaryPrompt = new SystemMessage(`
       Previous conversation summary:
@@ -60,16 +56,16 @@ export async function buildAgentGraph({
       toolHistoryPrompt,
       ...trimmedMessages,
     ];
-    console.log(
-      "[FULLPROMPT ARRAY SHIT INPUT]",
-      fullPromptArray.map((message, index) => ({
-        index,
-        type: message.constructor.name,
-        content: message.content,
-        tool_calls: (message as AIMessage).tool_calls,
-        tool_call_id: (message as ToolMessage).tool_call_id,
-      })),
-    );
+    // console.log(
+    //   "[FULLPROMPT ARRAY SHIT INPUT]",
+    //   fullPromptArray.map((message, index) => ({
+    //     index,
+    //     type: message.constructor.name,
+    //     content: message.content,
+    //     tool_calls: (message as AIMessage).tool_calls,
+    //     tool_call_id: (message as ToolMessage).tool_call_id,
+    //   })),
+    // );
     // Context History (above)
     const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
@@ -79,7 +75,10 @@ export async function buildAgentGraph({
     );
     console.log("LANGGRAPH: Message count: ", state.messages.length);
 
-    return { messages: [responseMessage], llmCalls: 1 };
+    return {
+      messages: [responseMessage],
+      llmCalls: 1,
+    };
   }
 
   const webSearchAgent = await webAgentGraph(model, getCurrentNetwork()["url"]);
@@ -114,15 +113,14 @@ export async function buildAgentGraph({
   }
 
   // Summary router
-  const SUMMARY_TRIGGER = 14;
   function routeAfterSummaryCheck(state: typeof AgentState.State) {
-    const unsummarizedCount =
-      state.messages.length - state.summarizedMessageCount;
-
-    if (unsummarizedCount > SUMMARY_TRIGGER) {
+    const humanMessageIndices = getHumanMessageIndices(state.messages);
+    if (
+      humanMessageIndices.length - state.summarizedLastHumanMessageCount >=
+      4
+    ) {
       return "summarize";
     }
-
     return "llm";
   }
   // Summary router
@@ -218,7 +216,7 @@ export async function buildAgentGraph({
       .addConditionalEdges("llm", routeAfterLLM, {
         tools: "tools",
         webResearch: "webResearch",
-        recoveryFromPlan: "recoverFromPlan",
+        recoverFromPlan: "recoverFromPlan",
         [END]: END,
       })
 
@@ -226,9 +224,19 @@ export async function buildAgentGraph({
       .addEdge("webResearch", "llm")
       .addEdge("recoverFromPlan", "llm")
 
-      .compile()
+      .compile({ checkpointer })
   );
 }
+
+// Trim messages langchain core library
+// const messageTrimmer = trimMessages({
+//   maxTokens: 10,
+//   strategy: "last",
+//   tokenCounter: (msgs) => msgs.length,
+//   includeSystem: true,
+//   startOn: "human",
+// });
+
 // Conditional Edge for mcpToolNode if there is no other routing envolved
 // .addConditionalEdges("llm", (state) => {
 //   const lastMessage = state.messages.at(-1);

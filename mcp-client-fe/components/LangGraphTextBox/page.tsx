@@ -12,9 +12,16 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
   const [text, setText] = useState<string>("");
   const [enableAbort, setEnableAbort] = useState<boolean>(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [threadId, setThreadId] = useState<string>("");
 
   const { model } = useSettingsStore();
 
+  useEffect(() => {
+    const threadIdMethod = () => {
+      setThreadId(crypto.randomUUID());
+    };
+    threadIdMethod();
+  }, []);
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -74,6 +81,7 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
         body: JSON.stringify({
           model: model,
           messages: sendableMessages,
+          threadId: threadId,
         }),
         signal: controller.signal,
       });

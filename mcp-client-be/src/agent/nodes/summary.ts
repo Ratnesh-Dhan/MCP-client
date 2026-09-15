@@ -7,8 +7,9 @@ import {
   SystemMessage,
   ToolMessage,
 } from "@langchain/core/messages";
-import { summar_prompt } from "../../lib/prompts.js";
+import { summary_prompt } from "../../lib/prompts.js";
 import { AgentState } from "../state.js";
+import { getHumanMessageIndices } from "../supports/trimMessages.js";
 
 export const createSummaryModel = async (model: string) => {
   const summaryModel = new ChatOllama({
@@ -25,7 +26,7 @@ const summarizeMessage = async (
   summarizerModel: ChatOllama,
 ) => {
   const summarizerPrompt = `
-    ${summar_prompt}
+    ${summary_prompt}
     
     Existing summary:
     ${existingSummary || "(none)"}
@@ -71,28 +72,44 @@ export const summarizeNode = async (
   state: typeof AgentState.State,
   summarizerModel: ChatOllama,
 ) => {
-  const RECENT_MESSAGES = 10;
-  const cutoff = state.messages.length - RECENT_MESSAGES;
-  const messagesToSummarize = state.messages.slice(
-    state.summarizedMessageCount,
-    cutoff,
-  );
+  const humanMessageIndices = getHumanMessageIndices(state.messages);
 
-  if (messagesToSummarize.length === 0) {
+  const unsummarizedHumanCount =
+    humanMessageIndices.length - state.summarizedLastHumanMessageCount;
+
+  if (unsummarizedHumanCount < 4) {
     return {};
   }
-  console.log(
-    `[SUMMARY] Summarizing messages ${state.summarizedMessageCount} -> ${cutoff}`,
+  const firstUnsummarizedHumanIndex =
+    humanMessageIndices[state.summarizedLastHumanMessageCount] ?? 0;
+
+  const secondLastHumanIndex =
+    humanMessageIndices[humanMessageIndices.length - 2];
+
+  const summaryMessages = state.messages.slice(
+    firstUnsummarizedHumanIndex,
+    secondLastHumanIndex,
   );
+
+  if (summaryMessages.length === 0) {
+    return {};
+  }
+  // if (humanMessageIndices.length - state.summarizedLastHumanMessageCount >= 4) {
+  //   const summaryMessages = state.messages.slice(
+  //     humanMessageIndices[state.summarizedLastHumanMessageCount + 1],
+  //     humanMessageIndices[humanMessageIndices.length - 3],
+  //   ); // -3 index to catch the last system message before 2nd last HumanMessage.
+
+  console.log("[SUMMARY] Summarizing messages");
   const summary = await summarizeMessage(
-    messagesToSummarize,
+    summaryMessages,
     state.summary,
     summarizerModel,
   );
   console.log("[SUMMARY] Update summary:");
   console.log(summary);
   return {
-    summary,
-    summarizedMessageCount: cutoff,
+    summary: summary,
+    summarizedLastHumanMessageCount: humanMessageIndices.length - 2,
   };
 };
