@@ -56,17 +56,6 @@ export async function buildAgentGraph({
       toolHistoryPrompt,
       ...trimmedMessages,
     ];
-    // console.log(
-    //   "[FULLPROMPT ARRAY SHIT INPUT]",
-    //   fullPromptArray.map((message, index) => ({
-    //     index,
-    //     type: message.constructor.name,
-    //     content: message.content,
-    //     tool_calls: (message as AIMessage).tool_calls,
-    //     tool_call_id: (message as ToolMessage).tool_call_id,
-    //   })),
-    // );
-    // Context History (above)
     const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
     console.log(
