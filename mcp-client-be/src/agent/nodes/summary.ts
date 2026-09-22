@@ -77,7 +77,7 @@ export const summarizeNode = async (
   const unsummarizedHumanCount =
     humanMessageIndices.length - state.summarizedLastHumanMessageCount;
 
-  if (unsummarizedHumanCount < 4) {
+  if (unsummarizedHumanCount < 6) {
     return {};
   }
   const firstUnsummarizedHumanIndex =
@@ -94,12 +94,6 @@ export const summarizeNode = async (
   if (summaryMessages.length === 0) {
     return {};
   }
-  // if (humanMessageIndices.length - state.summarizedLastHumanMessageCount >= 4) {
-  //   const summaryMessages = state.messages.slice(
-  //     humanMessageIndices[state.summarizedLastHumanMessageCount + 1],
-  //     humanMessageIndices[humanMessageIndices.length - 3],
-  //   ); // -3 index to catch the last system message before 2nd last HumanMessage.
-
   console.log("[SUMMARY] Summarizing messages");
   const summary = await summarizeMessage(
     summaryMessages,

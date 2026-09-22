@@ -11,53 +11,9 @@ export const getHumanMessageIndices = (messages: BaseMessage[]): number[] => {
 
 export const trimMessages = (state: typeof AgentState.State): BaseMessage[] => {
   const humanMessageIndices = getHumanMessageIndices(state.messages);
-  if (humanMessageIndices.length <= 4) return state.messages;
-  //   const targetIndex =
-  //     humanMessageIndices[
-  //       Math.max(
-  //         0,
-  //         humanMessageIndices.length - state.summarizedLastHumanMessageCount - 1,
-  //       )
-  //     ] ?? 0;
-  //   return state.messages.slice(targetIndex);
+  if (humanMessageIndices.length <= 6) return state.messages;
   const targetIndex =
     humanMessageIndices[state.summarizedLastHumanMessageCount] ?? 0;
 
   return state.messages.slice(targetIndex);
 };
-
-// export const trimMessages = (
-//   state: typeof AgentState.State,
-// ): {
-//   trimmedMessages: BaseMessage[];
-//   messagesToSummarize: BaseMessage[];
-//   summarizedLastHumanMessageCount: number;
-// } => {
-//   const humanMessageIndices = getHumanMessageIndices(state.messages);
-//   if (humanMessageIndices.length - state.summarizedLastHumanMessageCount >= 4) {
-//     const summaryMessages = state.messages.slice(
-//       humanMessageIndices[state.summarizedLastHumanMessageCount + 1],
-//       humanMessageIndices[humanMessageIndices.length - 3],
-//     ); // -3 index to catch the last system message before 2nd last HumanMessage.
-//     const trimmedMessages = state.messages.slice(
-//       humanMessageIndices[humanMessageIndices.length - 2],
-//     );
-//     return {
-//       trimmedMessages: trimmedMessages,
-//       messagesToSummarize: summaryMessages,
-//       summarizedLastHumanMessageCount: humanMessageIndices.length - 3,
-//     };
-//   }
-//   const targetIndex =
-//     humanMessageIndices[
-//       Math.max(
-//         0,
-//         humanMessageIndices.length - state.summarizedLastHumanMessageCount - 1,
-//       )
-//     ] ?? 0;
-//   return {
-//     trimmedMessages: state.messages.slice(targetIndex),
-//     messagesToSummarize: [],
-//     summarizedLastHumanMessageCount: state.summarizedLastHumanMessageCount,
-//   };
-// };

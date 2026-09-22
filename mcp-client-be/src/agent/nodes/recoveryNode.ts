@@ -1,8 +1,10 @@
 import { HumanMessage } from "@langchain/core/messages";
 import { AgentState } from "../state.js";
 
-export const recoveryFromPlanOnly = async(state: typeof AgentState.State) => {
-    console.log("[RECOVERY] Model returned a plan or empty response without a tool call.");
+export const recoveryFromPlanOnly = async (state: typeof AgentState.State) => {
+  console.log(
+    "[RECOVERY] Model returned a plan or empty response without a tool call.",
+  );
 
   return {
     messages: [
@@ -19,10 +21,12 @@ export const recoveryFromPlanOnly = async(state: typeof AgentState.State) => {
     ],
     planRetryCount: state.planRetryCount + 1,
   };
-}
+};
 
 export function looksLikePlan(content: unknown): boolean {
   if (typeof content !== "string") return false;
+
+  if (content.trim() === "") return true;
 
   const text = content.toLowerCase();
 
