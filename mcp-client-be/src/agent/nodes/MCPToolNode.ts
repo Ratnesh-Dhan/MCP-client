@@ -39,20 +39,6 @@ export class MCPToolNode {
           throw new Error(
             `Invalid tool call: "${toolCall.name}" is missing tool_call_id.`,
           );
-          // return {
-          //   message: new ToolMessage({
-          //     content: error,
-          //     tool_call_id: `invalid-${crypto.randomUUID()}`,
-          //     name: toolCall.name,
-          //   }),
-          //   history: {
-          //     toolCallId: `invalid-${crypto.randomUUID()}`,
-          //     tool: toolCall.name,
-          //     args,
-          //     success: false,
-          //     error,
-          //   } satisfies ToolExecution,
-          // };
         }
 
         const tool = this.tools.get(toolCall.name);
@@ -71,6 +57,7 @@ export class MCPToolNode {
               success: false,
               error,
             } satisfies ToolExecution,
+            planRetryCount: 0
           };
         }
         try {
@@ -91,6 +78,7 @@ export class MCPToolNode {
               args,
               success: true,
             } satisfies ToolExecution,
+            planRetryCount: 0,
           };
         } catch (error) {
           const errorMessage =
@@ -112,6 +100,7 @@ export class MCPToolNode {
               success: false,
               error: errorMessage,
             } satisfies ToolExecution,
+            planRetryCount: 0,
           };
         }
       }),
@@ -123,98 +112,3 @@ export class MCPToolNode {
     };
   }
 }
-
-// const toolHistory: ToolExecution[] = [];
-
-//     /*
-//      * Execute tool calls in parallel.
-//      *
-//      * This preserves the useful behavior of LangGraph's
-//      * ToolNode without hiding execution metadata from us.
-//      */
-//     const toolMessages = await Promise.all(
-//       toolCalls.map(async (toolCall: any) => {
-//         const tool = this.tools.get(toolCall.name);
-
-//         if (!tool) {
-//           const error = `Tool "${toolCall.name}" is not registered.`;
-
-//           toolHistory.push({
-//             toolCallId: toolCall.id,
-//             tool: toolCall.name,
-//             args: toolCall.args ?? {},
-//             success: false,
-//             error,
-//           });
-
-//           return new ToolMessage({
-//             content: error,
-//             tool_call_id: toolCall.id,
-//             name: toolCall.name,
-//           });
-//         }
-
-//         try {
-//           console.log(`LANGGRAPH: Executing tool "${toolCall.name}"`);
-
-//           console.log("LANGGRAPH: Tool args:", toolCall.args);
-
-//           const result = await tool.invoke(toolCall.args);
-
-//           console.log(`LANGGRAPH: Tool "${toolCall.name}" succeeded`);
-
-//           toolHistory.push({
-//             toolCallId: toolCall.id,
-//             tool: toolCall.name,
-//             args: toolCall.args ?? {},
-//             success: true,
-//           });
-
-//           return new ToolMessage({
-//             content:
-//               typeof result === "string" ? result : JSON.stringify(result),
-//             tool_call_id: toolCall.id,
-//             name: toolCall.name,
-//           });
-//         } catch (error) {
-//           const errorMessage =
-//             error instanceof Error ? error.message : String(error);
-
-//           console.error(`LANGGRAPH: Tool "${toolCall.name}" failed:`, error);
-
-//           toolHistory.push({
-//             toolCallId: toolCall.id,
-//             tool: toolCall.name,
-//             args: toolCall.args ?? {},
-//             success: false,
-//             error: errorMessage,
-//           });
-
-//           /*
-//            * IMPORTANT:
-//            *
-//            * Don't throw here.
-//            *
-//            * The LLM needs to receive the failure as a
-//            * ToolMessage so it can decide whether to retry,
-//            * use another tool, or tell the user.
-//            */
-//           return new ToolMessage({
-//             content:
-//               `Tool execution failed.\n` +
-//               `Tool: ${toolCall.name}\n` +
-//               `Error: ${errorMessage}`,
-//             tool_call_id: toolCall.id,
-//             name: toolCall.name,
-//           });
-//         }
-//       }),
-//     );
-
-//     return {
-//       messages: toolMessages,
-
-//       toolHistory,
-//     };
-//   }
-// }

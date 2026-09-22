@@ -1,22 +1,19 @@
-import { buildAgentGraph } from "../agent/graph.js";
 import { getAgentTools } from "../agent/tools.js";
 import { classifyIntent } from "./classifier.js";
 import { runDirectChatStream } from "./directChatRunner.js";
-import {
-  SystemMessage,
-  HumanMessage,
-  AIMessage,
-} from "@langchain/core/messages";
+import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import {
   StreamChunk,
   ToolExecution,
   typeRunAgentStream,
 } from "../types/agentTypes.js";
+import { getAgentGraph } from "../agent/graphCache.js";
 
 export async function runAgentStream({
   model,
   messages,
   serverName,
+  threadId,
   signal,
 }: typeRunAgentStream) {
   // 1. Get available MCP tools for this server
@@ -28,73 +25,44 @@ export async function runAgentStream({
   const lastMessages = messages.slice(-8);
   const toolHistory: ToolExecution[] = [];
 
-  // 3. Classify intent (Fast non-streaming call)
-  const mode = await classifyIntent({
-    model,
-    userMessage: lastUserMessage,
-    conversation: lastMessages,
-    availableTools: toolNames,
-    signal: signal,
-  });
+  // // 3. Classify intent (Fast non-streaming call)
+  // const mode = await classifyIntent({
+  //   model,
+  //   userMessage: lastUserMessage,
+  //   conversation: lastMessages,
+  //   availableTools: toolNames,
+  //   signal: signal,
+  // });
 
-  console.log(`[ROUTER]: Executing request via '${mode.toUpperCase()}' mode.`);
+  // console.log(`[ROUTER]: Executing request via '${mode.toUpperCase()}' mode.`);
 
-  // 4. ROUTE A: Direct Chat (Fast path - no LangGraph overhead)
-  if (mode === "chat_fast" || mode === "chat_think") {
-    return runDirectChatStream({ model, messages, signal, mode });
-  }
+  // // 4. ROUTE A: Direct Chat (Fast path - no LangGraph overhead)
+  // if (mode === "chat_fast" || mode === "chat_think") {
+  //   return runDirectChatStream({ model, messages, signal, mode });
+  // }
 
   // 5. ROUTE B: Full Agent Graph (When MCP tools are required)
-  const graph = await buildAgentGraph({ model, serverName });
-  const systemPrompt = new SystemMessage(`
-    You are Jinah — a capable female assistant with a tsundere personality. You help me (your boss) with everyday
-conversation and with computer-use / MCP tool tasks.
-
-VOICE
-Warm underneath, prickly on the surface. You deflect thanks, understate how much you
-care, and tease the user when they leave you an opening. Can use emojis.
-
-TOOLS
-You have MCP tools available.
-- Use a tool whenever one is relevant to the user's request, especially for actions or retrieving current/external information.
-- Just do it and report the result properly.
-- If no tool is needed, answer normally.
-- Never claim a tool action succeeded unless it actually did.
-- Report tool failures accurately; never hide or soften them.
-- Confirm before destructive, irreversible, financial, or externally consequential actions.
-
-RULES
-- Do not repeatedly reconsider decisions.
-- Once the required tool calls are clear, execute them immediately.
-- After successful tool execution, provide a result or report.
-- Stop reasoning once the task succeeds.
-
-FORMAT
-- List format for lists. Markdown when it earns its place.
-
-Respond directly. Don't deliberate about how to be in character — the voice is a filter
-on your normal answer, not a step before it.`);
-
-  const toolHistoryPrompt = new SystemMessage(`
-  Previous tool executions:
-  ${JSON.stringify(toolHistory, null, 2)}
-  `);
-  const langChainMessages = [
-    systemPrompt,
-    toolHistoryPrompt,
-    ...messages.map((m) =>
-      m.role === "user"
-        ? new HumanMessage(m.content)
-        : new AIMessage(m.content),
-    ),
-  ];
+  const graph = await getAgentGraph(model, serverName);
 
   async function* generate(): AsyncGenerator<StreamChunk> {
     try {
-      // streamEvents v2 provides fine-grained node and token events
+      // ✅ Pass the raw incoming state variables. LangGraph handles history compilation.
       const eventStream = graph.streamEvents(
-        { messages: langChainMessages, toolHistory: [], llmCalls: 0 },
-        { version: "v2", signal },
+        {
+          // messages: messages.map((m) =>
+          //   m.role === "user"
+          //     ? new HumanMessage(m.content)
+          //     : new AIMessage(m.content),
+          // ),
+          messages: [new HumanMessage(lastUserMessage)],
+        },
+        {
+          version: "v2",
+          configurable: {
+            thread_id: threadId,
+          },
+          signal,
+        },
       );
 
       for await (const event of eventStream) {

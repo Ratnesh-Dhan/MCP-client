@@ -9,6 +9,7 @@ export type typeRunAgentStream = {
   model: string;
   messages: Array<{ role: string; content: string }>;
   serverName: string;
+  threadId: string;
   signal?: AbortSignal;
 };
 

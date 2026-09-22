@@ -26,14 +26,6 @@ export const createWebSearchAgent = async (model: string, network: string) => {
   );
   const tools = await getAgentTools("tavily");
 
-  // console.log(
-  //   "TAVILY TOOLS:",
-  //   tools.map((tool) => ({
-  //     name: tool.name,
-  //     description: tool.description,
-  //   })),
-  // );
-
   const webSearchAgent = createDeepAgent({
     model: llm,
     tools: tools,

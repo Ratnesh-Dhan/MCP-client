@@ -7,12 +7,24 @@ import { buildAgentGraphType } from "../types/allTypes.js";
 import { getCurrentNetwork } from "../services/currentNetworkDB.js";
 import { webAgentGraph } from "./subgraphs/webAgent/graph.js";
 import { webResearchTool } from "./subgraphs/asTools/webAgentTool.js";
-import { AIMessage, ToolMessage } from "@langchain/core/messages";
+import {
+  AIMessage,
+  SystemMessage,
+  ToolMessage,
+} from "@langchain/core/messages";
 import { MCPToolNode } from "./nodes/MCPToolNode.js";
+import { main_prompt } from "../lib/prompts.js";
+import { createSummaryModel, summarizeNode } from "./nodes/summary.js";
+import { looksLikePlan, recoveryFromPlanOnly } from "./nodes/recoveryNode.js";
+import {
+  getHumanMessageIndices,
+  trimMessages,
+} from "./supports/trimMessages.js";
 
 export async function buildAgentGraph({
   model,
   serverName,
+  checkpointer,
 }: buildAgentGraphType) {
   const tools = await getAgentTools(serverName);
 
@@ -21,9 +33,30 @@ export async function buildAgentGraph({
     webResearchTool,
   ]);
 
+  // Summarizer initialization
+  const summarizerModel = await createSummaryModel(model);
+
   async function llmNode(state: typeof AgentState.State) {
     console.log("LANGGRAPH: Calling Ollama");
-    const responseMessage = await llmWithTools.invoke(state.messages);
+    // Context History (below)
+    const trimmedMessages = trimMessages(state);
+    const systemPrompt = new SystemMessage(main_prompt);
+    const summaryPrompt = new SystemMessage(`
+      Previous conversation summary:
+      ${state.summary || "No previous conversation summary."}
+      `);
+    const toolHistoryPrompt = new SystemMessage(`
+        Recent tool executions:
+        ${JSON.stringify(state.toolHistory.slice(-10), null, 2)}
+      `);
+
+    const fullPromptArray = [
+      systemPrompt,
+      summaryPrompt,
+      toolHistoryPrompt,
+      ...trimmedMessages,
+    ];
+    const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
     console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
     console.log(
       "LANGGRAPH: Tool calls: ",
@@ -31,7 +64,10 @@ export async function buildAgentGraph({
     );
     console.log("LANGGRAPH: Message count: ", state.messages.length);
 
-    return { messages: [responseMessage], llmCalls: 1 };
+    return {
+      messages: [responseMessage],
+      llmCalls: 1,
+    };
   }
 
   const webSearchAgent = await webAgentGraph(model, getCurrentNetwork()["url"]);
@@ -50,14 +86,41 @@ export async function buildAgentGraph({
       if (wantsWebResearch) return "webResearch";
       return "tools";
     }
+    // If model describe a plan but did not call a tool.
+    const isPlan = looksLikePlan(lastMessage.content);
+    // if model gave empty response while planning
+    const content =
+      typeof lastMessage.content === "string"
+        ? lastMessage.content.trim()
+        : JSON.stringify(lastMessage.content).trim();
+    const isEmptyResponse = content.length === 0;
+
+    if ((isPlan || isEmptyResponse) && state.planRetryCount < 2) {
+      return "recoverFromPlan";
+    }
     return END;
   }
 
+  // Summary router
+  function routeAfterSummaryCheck(state: typeof AgentState.State) {
+    const humanMessageIndices = getHumanMessageIndices(state.messages);
+    if (
+      humanMessageIndices.length - state.summarizedLastHumanMessageCount >=
+      4
+    ) {
+      return "summarize";
+    }
+    return "llm";
+  }
+  // Summary router
+
   return (
     new StateGraph(AgentState)
+      .addNode("maybeSummarize", (state) => state)
+      .addNode("summarize", (state) => summarizeNode(state, summarizerModel))
       .addNode("llm", llmNode)
-      // .addNode("tools", toolNode)
-      .addNode("tools", (state) => mcpToolNode.invoke(state))
+      .addNode("tools", mcpToolNode.invoke.bind(mcpToolNode))
+      // .addNode("tools", (state) => mcpToolNode.invoke(state))
       .addNode("webResearch", async (state) => {
         console.log("Node webResearch");
         const lastMessage = state.messages[
@@ -79,42 +142,90 @@ export async function buildAgentGraph({
         }
         const task = (call.args as { task: string }).task;
         console.log("TASK::: ", task);
-        const response = await webSearchAgent.invoke({
-          task: task,
-        });
-        console.log(response);
-        return {
-          subgraphResults: [
-            {
-              id: call.id,
-              agent: "webResearch",
-              success: true,
-              result: response.result,
-            },
-          ],
-          messages: [
-            new ToolMessage({
-              tool_call_id: call.id,
-              content: response.result,
-            }),
-          ],
-        };
+        try {
+          const response = await webSearchAgent.invoke({
+            task: task,
+          });
+          console.log(response);
+          return {
+            messages: [
+              new ToolMessage({
+                tool_call_id: call.id,
+                content: response.result,
+              }),
+            ],
+            toolHistory: [
+              {
+                toolCallId: call.id,
+                tool: call.name,
+                args: call.args,
+                success: true,
+              },
+            ],
+            planRetryCount: 0,
+          };
+        } catch (error) {
+          return {
+            messages: [
+              new ToolMessage({
+                tool_call_id: call.id,
+                content:
+                  error instanceof Error
+                    ? error.message
+                    : JSON.stringify(error),
+              }),
+            ],
+            toolHistory: [
+              {
+                toolCallId: call.id,
+                tool: "webResearch",
+                args: call.args,
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : JSON.stringify(error),
+              },
+            ],
+            planRetryCount: 0,
+          };
+        }
       })
+      .addNode("recoverFromPlan", recoveryFromPlanOnly)
 
-      .addEdge(START, "llm")
+      // .addEdge(START, "llm")
+      .addEdge(START, "maybeSummarize")
+
+      .addConditionalEdges("maybeSummarize", routeAfterSummaryCheck, {
+        summarize: "summarize",
+        llm: "llm",
+      })
+      .addEdge("summarize", "llm")
 
       .addConditionalEdges("llm", routeAfterLLM, {
         tools: "tools",
         webResearch: "webResearch",
+        recoverFromPlan: "recoverFromPlan",
         [END]: END,
       })
 
       .addEdge("tools", "llm")
       .addEdge("webResearch", "llm")
+      .addEdge("recoverFromPlan", "llm")
 
-      .compile()
+      .compile({ checkpointer })
   );
 }
+
+// Trim messages langchain core library
+// const messageTrimmer = trimMessages({
+//   maxTokens: 10,
+//   strategy: "last",
+//   tokenCounter: (msgs) => msgs.length,
+//   includeSystem: true,
+//   startOn: "human",
+// });
+
 // Conditional Edge for mcpToolNode if there is no other routing envolved
 // .addConditionalEdges("llm", (state) => {
 //   const lastMessage = state.messages.at(-1);
@@ -151,82 +262,36 @@ export async function buildAgentGraph({
 //   return END;
 // }
 
-// latest Graph Architecture
-//       ┌─────────────────────┐
-//       │     Parent Graph    │
-//       │                     │
-//       │ AgentState          │
-//       │                     │
-//       │ messages            │
-//       │ toolHistory         │
-//       │ iteration           │
-//       │ subgraphResults     │
-//       └──────────┬──────────┘
-//                  │
-//          routing decision
-//                  │
-// ┌────────────────┼────────────────┐
-// │                │                │
-// ▼                ▼                ▼
-// tools         webResearch           END
-// │                │
-// │                ▼
-// │       ┌──────────────────┐
-// │       │ Research Graph   │
-// │       │                  │
-// │       │ ResearchState    │
-// │       │                  │
-// │       │ task             │
-// │       │ result           │
-// │       └────────┬─────────┘
-// │                │
-// │                ▼
-// │       ┌──────────────────┐
-// │       │   Deep Agent     │
-// │       │                  │
-// │       │ private state    │
-// │       │ planning         │
-// │       │ tools            │
-// │       │ messages         │
-// │       │ etc.             │
-// │       └────────┬─────────┘
-// │                │
-// └────────────────┼───────────────┐
-//                  ▼               │
-//             Parent LLM ◄─────────┘
-//                  │
-//                  ▼
-//                 END
-
-// LangGraph Router Node (Inside the Graph Architecture) IF WE WANT TO ROUTE FROM GRAPH
-
-//           ┌───────────────┐
-//           │  START Node   │
-//           └───────┬───────┘
-//                   │
-//           ┌───────▼───────┐
-//           │ Classifier    │
-//           └───────┬───────┘
-//                   │
-//     ┌─────────────┴─────────────┐
-//     │ Conditional Router Edge   │
-//     └──────┬─────────────┬──────┘
-//            │             │
-// (Needs Tools)         (Direct Chat)
-//            │             │
-//   ┌────────▼──────┐     ┌▼──────────────┐
-//   │ LLM with      │     │ Plain LLM     │
-//   │ Tools Node    │     │ Node          │
-//   └───────┬───────┘     └────────┬──────┘
-//           │                      │
-//   ┌───────▼───────┐              │
-//   │ Tools Node    │              │
-//   └───────┬───────┘              │
-//           └──────────────┬───────┘
-//                          │
-//                   ┌──────▼──────┐
-//                   │     END     │
-//                   └─────────────┘
+//      PARENT GRAPH
+//           │
+//           ▼
+//          LLM
+//           │
+// ┌─────────┴──────────┐
+// │                    │
+// MCP call          webResearch call
+// │                    │
+// ▼                    ▼
+// MCPToolNode        Research Subgraph
+//                      │
+//                      ▼
+//                Deep Agent
+//                      │
+//                      ▼
+//                Tavily tools
+//                      │
+//                      ▼
+//                  result
+//                      │
+//            ┌────────────────────┴───────┐
+//            │                            │
+//            ▼                            ▼
+//         ToolMessage                 toolHistory
+//        actual result               execution metadata
+//            │                            │
+//            └────────────┬───────────────┘
+//                         ▼
+//                        LLM
 
 // import { StateGraph, START, END } from "@langchain/langgraph";
 // import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";

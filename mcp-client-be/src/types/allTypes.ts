@@ -1,3 +1,5 @@
+import { MemorySaver } from "@langchain/langgraph";
+
 export type Message = {
   id: string;
   role: "user" | "assistant";
@@ -51,4 +53,5 @@ export type MCPTool = {
 export type buildAgentGraphType = {
   model: string;
   serverName: string;
+  checkpointer: any;
 };

@@ -1,3 +1,4 @@
+import { BaseMessage } from "@langchain/core/messages";
 import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 
 export type ToolExecution = {
@@ -8,29 +9,31 @@ export type ToolExecution = {
   error?: string;
 };
 
-export type SubgraphExecution = {
-  id: string;
-  agent: string;
-  success: boolean;
-  result?: unknown;
-  error?: string;
-};
-
 export const AgentState = Annotation.Root({
   ...MessagesAnnotation.spec,
+
+  summary: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "",
+  }),
+
+  summarizedLastHumanMessageCount: Annotation<number>({
+    reducer: (_, update) => update,
+    default: () => 0,
+  }),
 
   toolHistory: Annotation<ToolExecution[]>({
     reducer: (current, update) => [...current, ...update],
     default: () => [],
   }),
 
-  subgraphResults: Annotation<SubgraphExecution[]>({
-    reducer: (current, update) => [...current, ...update],
-    default: () => [],
-  }),
-
   llmCalls: Annotation<number>({
     reducer: (current, update) => current + update,
+    default: () => 0,
+  }),
+
+  planRetryCount: Annotation<number>({
+    reducer: (_, update) => update,
     default: () => 0,
   }),
 });

@@ -5,12 +5,12 @@ const LangGraphAgentRouter = Router();
 
 LangGraphAgentRouter.post("/", async (req, res) => {
   try {
-    const { model, messages, server } = req.body;
+    const { model, messages, server, threadId } = req.body;
 
-    if (!model || !messages || !server) {
+    if (!model || !messages || !server || !threadId) {
       return res
         .status(400)
-        .json({ error: "model, messages & server are required." });
+        .json({ error: "model, messages, server $ threadId are required." });
     }
 
     const controller = new AbortController();
@@ -33,6 +33,7 @@ LangGraphAgentRouter.post("/", async (req, res) => {
       model,
       messages,
       serverName: server,
+      threadId: threadId,
       signal: controller.signal,
     });
     for await (const chunk of generator) {

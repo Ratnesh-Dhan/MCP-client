@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { model, messages } = await req.json();
+    const { model, messages, threadId } = await req.json();
 
     const res = await fetch("http://localhost:4000/api/langGraphagent", {
       method: "POST",
@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
         model,
         messages,
         server: "jinah",
+        threadId: threadId,
       }),
       signal: req.signal,
     });
