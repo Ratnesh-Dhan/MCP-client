@@ -56,18 +56,25 @@ export async function buildAgentGraph({
       toolHistoryPrompt,
       ...trimmedMessages,
     ];
-    const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
-    console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
-    console.log(
-      "LANGGRAPH: Tool calls: ",
-      JSON.stringify(responseMessage.tool_calls, null, 2),
-    );
-    console.log("LANGGRAPH: Message count: ", state.messages.length);
+    try {
+      const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
+      console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
+      console.log(
+        "LANGGRAPH: Tool calls: ",
+        JSON.stringify(responseMessage.tool_calls, null, 2),
+      );
+      console.log("LANGGRAPH: Message count: ", state.messages.length);
 
-    return {
-      messages: [responseMessage],
-      llmCalls: 1,
-    };
+      return {
+        messages: [responseMessage],
+        llmCalls: 1,
+      };
+    } catch (error) {
+      console.log(`[LLM Invoke ERROR ${error}`);
+      return {
+        messages: [],
+      };
+    }
   }
 
   const webSearchAgent = await webAgentGraph(model, getCurrentNetwork()["url"]);
