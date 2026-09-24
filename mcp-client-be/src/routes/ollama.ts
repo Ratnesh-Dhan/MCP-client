@@ -2,14 +2,19 @@ import { Router } from "express";
 
 import { listModles, showModel, chat, getLinks } from "../services/ollama.js";
 import { setCurrentNetwork } from "../services/currentNetworkDB.js";
+import { getUserSettings } from "../db/queries.js";
 
 const OllamaRouter = Router();
 
 OllamaRouter.get("/networks", async (req, res) => {
   try {
-    const links = await getLinks();
-    setCurrentNetwork({ url: links[0]["url"] });
-    res.status(200).json(links);
+    // const links = await getLinks();
+    // setCurrentNetwork({ url: links[0]["url"] });
+    // res.status(200).json(links);
+
+    const userSettings = await getUserSettings();
+    console.log({userSettings});
+    res.status(200).json(userSettings);
   } catch (error) {
     console.log(error);
     res.status(500).json({
