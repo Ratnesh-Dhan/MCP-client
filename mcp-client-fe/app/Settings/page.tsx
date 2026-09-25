@@ -50,7 +50,7 @@ export default function Settings() {
 
         const data = await res.json();
 
-        setNetworks(data);
+        setNetworks(data.links);
 
         if (!network && data.length > 0) {
           setNetwork(data[0].url);
@@ -151,7 +151,6 @@ export default function Settings() {
       setConnectingMcp(false);
     }
   };
-
   return (
     <div className="flex-1 bg-zinc-50 dark:bg-zinc-950">
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">

@@ -1,8 +1,12 @@
 "use client";
 
 import { Bot, Loader2 } from "lucide-react";
-import { fieldLabelClassName, selectClassName } from "@/components/settings/styles";
+import {
+  fieldLabelClassName,
+  selectClassName,
+} from "@/components/settings/styles";
 import { OllamaModel } from "@/types/allTypes";
+import { useEffect } from "react";
 
 type ModelSelectProps = {
   models: OllamaModel[];
@@ -21,6 +25,28 @@ export default function ModelSelect({
   onChange,
   onOpen,
 }: ModelSelectProps) {
+  useEffect(() => {
+    try {
+      if (value !== "") {
+        fetch("/api/setings/addModel", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ modelName: value }),
+        })
+          .then((response) => {
+            console.log("Model selcted: ", response.json());
+          })
+          .catch((error) => {
+            console.error("Error saving model name:", error);
+          });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }, [value]);
+
   return (
     <div className="space-y-2">
       <label htmlFor="model" className={fieldLabelClassName}>

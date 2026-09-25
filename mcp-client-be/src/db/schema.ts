@@ -1,11 +1,10 @@
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
-import { boolean } from "zod";
 
 // Application settings
 export const userSettings = sqliteTable("user_settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   modelNetwork: text("model_network").notNull(),
-  modelName: text("model_name").notNull(),
+  modelName: text("model_name"),
 });
 
 // MCP Servers
@@ -17,7 +16,7 @@ export const mcpServers = sqliteTable("mcp_servers", {
   args: text("args", { mode: "json" }),
   cwd: text("cwd"),
 
-  enabled: integer("enabled", { mode: "boolean"}).notNull().default(true)
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
 });
 
 // TOOLS per mcp servers

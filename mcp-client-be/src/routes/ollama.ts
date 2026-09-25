@@ -2,24 +2,82 @@ import { Router } from "express";
 
 import { listModles, showModel, chat, getLinks } from "../services/ollama.js";
 import { setCurrentNetwork } from "../services/currentNetworkDB.js";
-import { getUserSettings } from "../db/queries.js";
+import { getUserSettings, updateModel, updateNetwork } from "../db/queries.js";
+import { ModelNetwork, ModelOnNetwork } from "../db/zodSchema.js";
 
 const OllamaRouter = Router();
 
 OllamaRouter.get("/networks", async (req, res) => {
   try {
-    // const links = await getLinks();
-    // setCurrentNetwork({ url: links[0]["url"] });
+    const [links, userSettings] = await Promise.all([
+      getLinks(),
+      getUserSettings(),
+    ]);
+    setCurrentNetwork({ url: links[0]["url"] });
     // res.status(200).json(links);
-
-    const userSettings = await getUserSettings();
-    console.log({userSettings});
-    res.status(200).json(userSettings);
+    console.log({ userSettings, links });
+    res.status(200).json({ userSettings, links });
   } catch (error) {
     console.log(error);
     res.status(500).json({
       error:
         error instanceof Error ? error.message : "Error while getting links.",
+    });
+  }
+});
+
+OllamaRouter.get("/userSettings", async (req, res) => {
+  try {
+    const userSettings = await getUserSettings();
+    res.status(200).json(userSettings);
+  } catch (error) {
+    res.status(500).json({
+      error:
+        error instanceof Error
+          ? error.message
+          : "Error while getting user Settings.",
+    });
+  }
+});
+
+OllamaRouter.post("/add-network", async (req, res) => {
+  try {
+    const result = ModelNetwork.safeParse(req.body);
+    if (!result.success) {
+      console.log("Fuck happend");
+      return res.status(400).json({
+        error: result.error,
+      });
+    }
+    console.log("calling add network query", result.data);
+    const db_result = await updateNetwork(result.data.modelNetwork);
+    console.log("calling add network query/");
+    console.log({ db_result });
+    res.status(201).json(db_result);
+  } catch (error) {
+    res.status(422).json({
+      error: error instanceof Error ? error.message : "Adding network failed.",
+    });
+  }
+});
+
+OllamaRouter.post("/set-model", async (req, res) => {
+  try {
+    const result = ModelOnNetwork.safeParse(req.body);
+    if (!result.success) {
+      console.log("Fuck happend");
+      return res.status(400).json({
+        error: result.error,
+      });
+    }
+    const db_result = updateModel(result.data);
+    res.status(201).json(db_result);
+  } catch (error) {
+    res.status(422).json({
+      error:
+        error instanceof Error
+          ? error.message
+          : "Adding model name in DB failed.",
     });
   }
 });
