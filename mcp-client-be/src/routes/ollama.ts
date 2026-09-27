@@ -49,10 +49,11 @@ OllamaRouter.post("/add-network", async (req, res) => {
         error: result.error,
       });
     }
-    console.log("calling add network query", result.data);
+    console.log(req.body)
+    console.log("calling add network query", req.body);
     const db_result = await updateNetwork(result.data.modelNetwork);
-    console.log("calling add network query/");
-    console.log({ db_result });
+    console.log("calling add network query");
+    console.log("DB_RESULT ", db_result);
     res.status(201).json(db_result);
   } catch (error) {
     res.status(422).json({
@@ -64,14 +65,18 @@ OllamaRouter.post("/add-network", async (req, res) => {
 OllamaRouter.post("/set-model", async (req, res) => {
   try {
     const result = ModelOnNetwork.safeParse(req.body);
+    console.log("Incoming for set model ", req.body)
     if (!result.success) {
       console.log("Fuck happend");
       return res.status(400).json({
         error: result.error,
       });
     }
-    const db_result = updateModel(result.data);
-    res.status(201).json(db_result);
+    const db_result = await updateModel(result.data);
+    console.log("DB_RESULT after model name", db_result);
+    const db_content = await getUserSettings();
+    console.log("DB content ", db_content)
+    res.status(201).json(db_content);
   } catch (error) {
     res.status(422).json({
       error:

@@ -34,6 +34,7 @@ export default function LocalNetwork({
   };
   const addAfterHandler = async () => {
     try {
+      console.log(userEnteredNetwork);
       if (userEnteredNetwork) {
         const res = await fetch("/api/settings/addNetwork", {
           method: "POST",

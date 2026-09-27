@@ -4,7 +4,7 @@ import { userSettings, mcpServers, mcpTools } from "./schema.js";
 
 // Get all user Settings
 export async function getUserSettings() {
-  return db.select().from(userSettings).limit(1);
+  return db.select().from(userSettings); //.limit(1)
 }
 
 // Update model network
@@ -19,7 +19,7 @@ export async function updateNetwork(modelNetwork: string) {
   }
   return db
     .update(userSettings)
-    .set({ modelNetwork })
+    .set({ modelNetwork, modelName:"" })
     .where(eq(userSettings.id, existing[0].id))
     .returning();
 }

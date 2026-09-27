@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { modelName } = await req.json();
+    const { modelNetwork, modelName } = await req.json();
     const res = await fetch("http://localhost:4000/api/ollama/set-model", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        modelNetwork: modelNetwork,
         modelName: modelName,
       }),
     });

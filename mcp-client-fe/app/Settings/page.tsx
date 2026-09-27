@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Cpu, Settings2, Sparkles } from "lucide-react";
 import LocalNetwork from "@/components/settings/LocalNetwork";
 import ModelSelect from "@/components/settings/ModelSelect";
@@ -151,6 +151,17 @@ export default function Settings() {
       setConnectingMcp(false);
     }
   };
+  useEffect(()=> {
+    const savedNetwork = window.localStorage.getItem("modelNetwork")
+    console.log("firing useEffect ", savedNetwork)
+    const savedName = window.localStorage.getItem("modelName")
+    if(savedNetwork) setNetwork(`${savedNetwork}`);
+    if (savedName) {
+      setModel(`${savedName}`);
+      setLoadingModels(true);
+    }
+
+  },[])
   return (
     <div className="flex-1 bg-zinc-50 dark:bg-zinc-950">
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
@@ -182,6 +193,7 @@ export default function Settings() {
             />
 
             <ModelSelect
+              network={network}
               models={models}
               value={model}
               loading={loadingModels}

@@ -6,9 +6,9 @@ import {
   selectClassName,
 } from "@/components/settings/styles";
 import { OllamaModel } from "@/types/allTypes";
-import { useEffect } from "react";
 
 type ModelSelectProps = {
+  network: string;
   models: OllamaModel[];
   value: string;
   loading: boolean;
@@ -18,6 +18,7 @@ type ModelSelectProps = {
 };
 
 export default function ModelSelect({
+  network,
   models,
   value,
   loading,
@@ -25,49 +26,52 @@ export default function ModelSelect({
   onChange,
   onOpen,
 }: ModelSelectProps) {
-  useEffect(() => {
+
+  const handlenew = async(value: string)=> {
     try {
-      if (value !== "") {
-        fetch("/api/setings/addModel", {
+      console.log({value})
+      const response = await  fetch("/api/settings/addModel", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ modelName: value }),
-        })
-          .then((response) => {
-            console.log("Model selcted: ", response.json());
-          })
-          .catch((error) => {
-            console.error("Error saving model name:", error);
-          });
-      }
-    } catch (error) {
-      console.log(error);
+          body: JSON.stringify({ modelNetwork: network,modelName: value }),
+        });
+        const res = await response.json();
+        console.log(res["message"][0]['modelName'])
+        window.localStorage.setItem("modelNetwork", res["message"][0]['modelNetwork'])
+        window.localStorage.setItem("modelName", res["message"][0]["modelName"])
+        onChange(res["message"][0]['modelName'])
     }
-  }, [value]);
+    catch(error) {
+      console.log("fuck ", error)
+    }
+  }
 
   return (
     <div className="space-y-2">
       <label htmlFor="model" className={fieldLabelClassName}>
         Language model
       </label>
-
+ 
       <div className="relative">
         <Bot className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
         <select
           id="model"
           value={value}
-          disabled={disabled || loading}
+          disabled={disabled===null? true: disabled || loading===null? true: loading}
           onMouseDown={onOpen}
-          onChange={(e) => onChange(e.target.value)}
+          // onChange={(e) => onChange(e.target.value)}
+          onChange={(e)=> handlenew(e.target.value)}
           className={`${selectClassName} appearance-none pl-10 pr-10`}
         >
           {loading ? (
             <option value="">Loading models...</option>
           ) : !value && models.length === 0 ? (
             <option value="">Select a model...</option>
-          ) : models.length === 0 ? (
+          ) : value? (<option value={value}>{value}</option>
+
+          ): models.length === 0 ? (
             <option value="">No models available</option>
           ) : (
             models.map((model) => (
