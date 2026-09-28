@@ -77,9 +77,9 @@ export default function LocalNetwork({
               {loading ? (
                 <option value="">Loading networks...</option>
               ) : !value && networks.length === 0 ? (
-                <option value="">Select a network...</option>
+                <option value="">Select a network...</option> 
               ) : networks.length === 0 ? (
-                <option value="">No networks available</option>
+                <option value="">{value}</option>
               ) : (
                 networks.map((network) => (
                   <option key={network.id} value={network.url}>

@@ -48,6 +48,9 @@ export default function ModelSelect({
     }
   }
 
+  const fuck = ()=> {
+    console.log("FUck this is models : ", models)
+  }
   return (
     <div className="space-y-2">
       <label htmlFor="model" className={fieldLabelClassName}>
@@ -66,6 +69,17 @@ export default function ModelSelect({
           className={`${selectClassName} appearance-none pl-10 pr-10`}
         >
           {loading ? (
+    <option value="">Loading models...</option>
+  ) : !value && models.length === 0 ? (
+    <option value="">No models available</option>
+  ) : (
+    models.map((model) => (
+      <option key={model.model} value={model.model}>
+        {model.model}
+      </option>
+    ))
+  )}
+          {/* {loading ? (
             <option value="">Loading models...</option>
           ) : !value && models.length === 0 ? (
             <option value="">Select a model...</option>
@@ -74,12 +88,12 @@ export default function ModelSelect({
           ): models.length === 0 ? (
             <option value="">No models available</option>
           ) : (
-            models.map((model) => (
-              <option key={model.model} value={model.model}>
+            models.map(( model, idx) => (
+              <option key={idx} value={model.model}>
                 {model.model}
               </option>
             ))
-          )}
+          )} */}
         </select>
         {loading && (
           <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-violet-500" />

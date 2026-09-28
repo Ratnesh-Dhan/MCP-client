@@ -50,11 +50,16 @@ export default function Settings() {
 
         const data = await res.json();
 
-        setNetworks(data.links);
-
+        
         if (!network && data.length > 0) {
           setNetwork(data[0].url);
         }
+        const network_links = data.links;
+
+        const values = Object.values(network_links);
+        if (values.includes(network)) setNetwork(network_links)
+        else  setNetworks([{id: 0, url: network}, ...network_links]);
+
       } catch (error) {
         console.error("Network loading error:", error);
       } finally {
@@ -62,7 +67,6 @@ export default function Settings() {
         loadNetworksPromise.current = null;
       }
     })();
-
     return loadNetworksPromise.current;
   }, [network, networksLoaded, setNetwork, setNetworks]);
 
@@ -98,7 +102,7 @@ export default function Settings() {
 
         const data = await res.json();
         const loadedModels = data.models ?? [];
-
+        console.log("LoadedModels ", loadedModels)
         setModelsForNetwork(network, loadedModels);
 
         if (loadedModels.length > 0) {
@@ -158,7 +162,8 @@ export default function Settings() {
     if(savedNetwork) setNetwork(`${savedNetwork}`);
     if (savedName) {
       setModel(`${savedName}`);
-      setLoadingModels(true);
+      setModelsForNetwork(network, [{model: savedName}])
+      // setLoadingModels(true);
     }
 
   },[])
@@ -204,8 +209,8 @@ export default function Settings() {
           </SettingsSection>
 
           <SettingsSection
-            title="MCP connection"
-            description="Connect a Model Context Protocol server to extend assistant capabilities."
+            title="MCP Servers"
+            description="Connect servers and control which tolls Jinah can use."
             icon={Sparkles}
           >
             <McpServerSelect
