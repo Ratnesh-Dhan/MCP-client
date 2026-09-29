@@ -1,11 +1,15 @@
 "use client";
 
-import { Loader2, Plug, PlugZap } from "lucide-react";
+import { Loader2, Plug, PlugZap, Plus, Trash } from "lucide-react";
 import {
   fieldLabelClassName,
   primaryButtonClassName,
   selectClassName,
 } from "@/components/settings/styles";
+import { useState } from "react";
+import AddMcpModal from "./AddMcpModal";
+import { McpServer } from "@/types/allTypes";
+import McpServerCard from "./McpServerCard";
 
 export type McpServerConfig = {
   name: string;
@@ -56,14 +60,37 @@ export default function McpServerSelect({
   onChange,
   onConnect,
 }: McpServerSelectProps) {
+  const [addMcpOpen, setAddMcpOpen] = useState<boolean>(false);
+  const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
+
   const selected = MCP_SERVERS.find((server) => server.id === value);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor="mcp-server" className={fieldLabelClassName}>
+        {/* <label htmlFor="mcp-server" className={fieldLabelClassName}>
           Server instance
-        </label>
+        </label> */}
+        <div className="flex flex-row-reverse gap-2">
+          <button
+            className={primaryButtonClassName}
+            onClick={() => setAddMcpOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Add MCP
+          </button>
+        </div>
+        <div id="mcp-servers" className="flex flex-col gap-2">
+          {mcpServers.length !== 0
+            ? mcpServers.map((server) => (
+                <McpServerCard
+                  key={server.id}
+                  server={server}
+                  setMcpServers={setMcpServers}
+                />
+              ))
+            : null}
+        </div>
 
         <div className="relative">
           <Plug className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -82,7 +109,6 @@ export default function McpServerSelect({
           </select>
         </div>
       </div>
-
       {selected && (
         <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-950/50">
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
@@ -93,7 +119,6 @@ export default function McpServerSelect({
           </p>
         </div>
       )}
-
       <button
         type="button"
         className={primaryButtonClassName}
@@ -112,6 +137,11 @@ export default function McpServerSelect({
           </>
         )}
       </button>
+      <AddMcpModal
+        open={addMcpOpen}
+        onClose={() => setAddMcpOpen(false)}
+        setMcpServers={setMcpServers}
+      />
     </div>
   );
 }

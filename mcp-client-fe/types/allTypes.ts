@@ -47,3 +47,19 @@ export interface ModelNetwork {
   id: number;
   url: string;
 }
+
+export type McpTool = {
+  id: number;
+  name: string;
+  enabled: boolean;
+};
+
+export type McpServer = {
+  id: number;
+  name: string;
+  command: string;
+  args: string[];
+  cwd: string | null;
+  enabled: boolean;
+  tools?: McpTool[];
+};

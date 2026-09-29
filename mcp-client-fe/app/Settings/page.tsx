@@ -6,7 +6,7 @@ import LocalNetwork from "@/components/settings/LocalNetwork";
 import ModelSelect from "@/components/settings/ModelSelect";
 import McpServerSelect, {
   MCP_SERVERS,
-} from "@/components/settings/McpServerSelect";
+} from "@/components/settings/McpServerSelect/page";
 import SettingsSection from "@/components/settings/SettingsSection";
 import { useSettingsStore } from "@/store/settings";
 
@@ -50,16 +50,14 @@ export default function Settings() {
 
         const data = await res.json();
 
-        
         if (!network && data.length > 0) {
           setNetwork(data[0].url);
         }
         const network_links = data.links;
 
         const values = Object.values(network_links);
-        if (values.includes(network)) setNetwork(network_links)
-        else  setNetworks([{id: 0, url: network}, ...network_links]);
-
+        if (values.includes(network)) setNetwork(network_links);
+        else setNetworks([{ id: 0, url: network }, ...network_links]);
       } catch (error) {
         console.error("Network loading error:", error);
       } finally {
@@ -102,7 +100,7 @@ export default function Settings() {
 
         const data = await res.json();
         const loadedModels = data.models ?? [];
-        console.log("LoadedModels ", loadedModels)
+        console.log("LoadedModels ", loadedModels);
         setModelsForNetwork(network, loadedModels);
 
         if (loadedModels.length > 0) {
@@ -155,18 +153,17 @@ export default function Settings() {
       setConnectingMcp(false);
     }
   };
-  useEffect(()=> {
-    const savedNetwork = window.localStorage.getItem("modelNetwork")
-    console.log("firing useEffect ", savedNetwork)
-    const savedName = window.localStorage.getItem("modelName")
-    if(savedNetwork) setNetwork(`${savedNetwork}`);
+  useEffect(() => {
+    const savedNetwork = window.localStorage.getItem("modelNetwork");
+    console.log("firing useEffect ", savedNetwork);
+    const savedName = window.localStorage.getItem("modelName");
+    if (savedNetwork) setNetwork(`${savedNetwork}`);
     if (savedName) {
       setModel(`${savedName}`);
-      setModelsForNetwork(network, [{model: savedName}])
+      setModelsForNetwork(network, [{ model: savedName }]);
       // setLoadingModels(true);
     }
-
-  },[])
+  }, []);
   return (
     <div className="flex-1 bg-zinc-50 dark:bg-zinc-950">
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
