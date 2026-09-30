@@ -25,7 +25,7 @@ export default function Settings() {
     setMcpStatus,
     mcpStatus,
   } = useSettingsStore();
-
+  const [hydrated, setHydrated] = useState<boolean>(false);
   const [loadingNetworks, setLoadingNetworks] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
   const [mcpServer, setMcpServer] = useState(MCP_SERVERS[1].id);
@@ -154,6 +154,7 @@ export default function Settings() {
     }
   };
   useEffect(() => {
+    setHydrated(true);
     const savedNetwork = window.localStorage.getItem("modelNetwork");
     console.log("firing useEffect ", savedNetwork);
     const savedName = window.localStorage.getItem("modelName");
@@ -164,6 +165,7 @@ export default function Settings() {
       // setLoadingModels(true);
     }
   }, []);
+  if (!hydrated) return null;
   return (
     <div className="flex-1 bg-zinc-50 dark:bg-zinc-950">
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">

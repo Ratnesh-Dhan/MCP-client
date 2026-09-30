@@ -5,10 +5,13 @@ import {
   callMCPTool,
   disconnectMCP,
 } from "../services/mcp.js";
+import { addMcpServer, getMcpServers } from "../db/queries.js";
+import { success } from "zod";
 
 const MCProuter = Router();
 
-MCProuter.post("/connect", async (req, res) => {
+// Old obsolete connection code
+MCProuter.post("/connect_old", async (req, res) => {
   try {
     const { name, command, args, cwd } = req.body;
     await connectMCP(name, command, args ?? [], {}, cwd);
@@ -21,6 +24,32 @@ MCProuter.post("/connect", async (req, res) => {
   }
 });
 
+// Connect MCP server
+MCProuter.post("/connect", async (req, res) => {
+  try {
+    const { name, command, args, cwd } = req.body;
+    const client = await connectMCP(name, command, args ?? [], {}, cwd);
+    if (client) {
+      const data = {
+        name: name,
+        command: command,
+        args: args ?? [],
+        cwd: cwd ?? "",
+      };
+      const [db_result] = await addMcpServer(data);
+      res.json({ success: true, server: name, id: db_result.id });
+    } else {
+      res.json({ success: false, server: name });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Connection failed.",
+    });
+  }
+});
+
+// Get tools
 MCProuter.get("/tools", async (req, res) => {
   try {
     const server = req.query.server as string;
@@ -53,6 +82,18 @@ MCProuter.post("/disconnect", async (req, res) => {
     res.status(500).json({
       error: error instanceof Error ? error.message : "Failed to Disconnect",
     });
+  }
+});
+
+// GET all MCP servers
+MCProuter.get("/get-all", async (req, res) => {
+  try {
+    const servers = await getMcpServers();
+    console.log({ servers });
+    res.status(200).json({ success: true, servers });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, error: error });
   }
 });
 

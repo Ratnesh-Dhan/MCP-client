@@ -1,12 +1,12 @@
 "use client";
 
-import { Loader2, Plug, PlugZap, Plus, Trash } from "lucide-react";
+import { Loader2, Plug, PlugZap, Plus } from "lucide-react";
 import {
   fieldLabelClassName,
   primaryButtonClassName,
   selectClassName,
 } from "@/components/settings/styles";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddMcpModal from "./AddMcpModal";
 import { McpServer } from "@/types/allTypes";
 import McpServerCard from "./McpServerCard";
@@ -64,6 +64,35 @@ export default function McpServerSelect({
   const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
 
   const selected = MCP_SERVERS.find((server) => server.id === value);
+
+  const pullMcpServers = async () => {
+    try {
+      const res = await fetch("/api/mcp/pull-all-mcp-server");
+      if (!res.ok) throw new Error("Unable to pull MCP servers.");
+      const response = await res.json();
+      console.log("Servers: ", response.servers);
+
+      const servers: McpServer[] = [];
+      response.servers.forEach((ele: McpServer) => {
+        servers.push({
+          id: ele.id,
+          name: ele.name,
+          command: ele.command,
+          args: ele.args,
+          cwd: ele.cwd,
+          enabled: ele.enabled,
+        });
+      });
+      setMcpServers(servers);
+    } catch (error) {
+      console.log(error);
+      setMcpServers([]);
+    }
+  };
+
+  useEffect(() => {
+    pullMcpServers();
+  }, []);
 
   return (
     <div className="space-y-4">

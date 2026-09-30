@@ -37,10 +37,14 @@ export async function POST(req: NextRequest) {
         cwd: cwd,
       }),
     });
+    const result = await res.json();
+    console.log("Connect response : ", result);
 
-    console.log(await res.json());
-
-    return NextResponse.json({ success: true, server: name });
+    return NextResponse.json({
+      success: result.success,
+      server: result.server,
+      id: result.id ?? null,
+    });
   } catch (error) {
     console.error("MCP Connection Error: ", error);
     return NextResponse.json(

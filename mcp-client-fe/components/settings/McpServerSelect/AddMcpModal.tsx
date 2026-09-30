@@ -30,46 +30,64 @@ export default function AddMcpModal({
 
   const submittingRef = useRef(false);
 
-  const generateNumericId = (): number => {
-    const buffer = new Uint32Array(1);
-    crypto.getRandomValues(buffer);
-    return buffer[0];
-  };
+  // const generateNumericId = (): number => {
+  //   const buffer = new Uint32Array(1);
+  //   crypto.getRandomValues(buffer);
+  //   return buffer[0];
+  // };
 
-  const addMcpServers = useCallback(() => {
+  const addMcpServers = useCallback(async () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setLoading(true);
     try {
       const argy: string[] = args.split(",").map((arg) => arg.trim());
-      const newServer: McpServer = {
-        id: generateNumericId(),
-        name: name.trim(),
-        command: command.trim(),
-        args: argy,
-        cwd: cwd,
-        enabled: false,
-      };
 
-      setMcpServers((prevServers) => {
-        const name_exists = prevServers.some(
-          (server) => server.name === newServer.name,
-        );
-        const cwd_exists = prevServers.some(
-          (server) => server.cwd === newServer.cwd,
-        );
-
-        if (name_exists || cwd_exists) {
-          console.warn("A server with this name already exists!");
-          return prevServers;
-        }
-        return [...prevServers, newServer];
+      const res = await fetch("/api/mcp/connect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          command: command.trim(),
+          args: argy,
+          cwd: cwd,
+        }),
       });
+      const response = await res.json();
+      if (response.success) {
+        const newServer: McpServer = {
+          id: response.id,
+          name: name.trim(),
+          command: command.trim(),
+          args: argy,
+          cwd: cwd,
+          enabled: true,
+        };
 
-      setName("");
-      setCommand("");
-      setArgs("");
-      setCwd("");
+        setMcpServers((prevServers) => {
+          const name_exists = prevServers.some(
+            (server) => server.name === newServer.name,
+          );
+          const cwd_exists = prevServers.some(
+            (server) => server.cwd === newServer.cwd,
+          );
+
+          if (name_exists || cwd_exists) {
+            console.warn("A server with this name already exists!");
+            return prevServers;
+          }
+          return [...prevServers, newServer];
+        });
+
+        setName("");
+        setCommand("");
+        setArgs("");
+        setCwd("");
+      } else {
+        throw new Error("DB operation failed.");
+      }
     } catch (error) {
       console.log(error);
     } finally {
