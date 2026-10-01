@@ -4,6 +4,7 @@ import { listModles, showModel, chat, getLinks } from "../services/ollama.js";
 import { setCurrentNetwork } from "../services/currentNetworkDB.js";
 import { getUserSettings, updateModel, updateNetwork } from "../db/queries.js";
 import { ModelNetwork, ModelOnNetwork } from "../db/zodSchema.js";
+import { networkManager } from "../lib/networkManager.js";
 
 const OllamaRouter = Router();
 
@@ -49,9 +50,12 @@ OllamaRouter.post("/add-network", async (req, res) => {
         error: result.error,
       });
     }
-    console.log(req.body)
+    console.log(req.body);
     console.log("calling add network query", req.body);
-    const db_result = await updateNetwork(result.data.modelNetwork);
+    // const db_result = await updateNetwork(result.data.modelNetwork);
+    const db_result = await networkManager.updateNetwork(
+      result.data.modelNetwork,
+    );
     console.log("calling add network query");
     console.log("DB_RESULT ", db_result);
     res.status(201).json(db_result);
@@ -65,17 +69,18 @@ OllamaRouter.post("/add-network", async (req, res) => {
 OllamaRouter.post("/set-model", async (req, res) => {
   try {
     const result = ModelOnNetwork.safeParse(req.body);
-    console.log("Incoming for set model ", req.body)
+    console.log("Incoming for set model ", req.body);
     if (!result.success) {
       console.log("Fuck happend");
       return res.status(400).json({
         error: result.error,
       });
     }
-    const db_result = await updateModel(result.data);
+    // const db_result = await updateModel(result.data);
+    const db_result = await networkManager.updateModel(result.data.modelName);
     console.log("DB_RESULT after model name", db_result);
     const db_content = await getUserSettings();
-    console.log("DB content ", db_content)
+    console.log("DB content ", db_content);
     res.status(201).json(db_content);
   } catch (error) {
     res.status(422).json({

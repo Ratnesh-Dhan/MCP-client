@@ -6,7 +6,7 @@ import {
   disconnectMCP,
 } from "../services/mcp.js";
 import { addMcpServer, getMcpServers } from "../db/queries.js";
-import { success } from "zod";
+import { mcps } from "../lib/mcpManager.js";
 
 const MCProuter = Router();
 
@@ -37,6 +37,7 @@ MCProuter.post("/connect", async (req, res) => {
         cwd: cwd ?? "",
       };
       const [db_result] = await addMcpServer(data);
+      mcps.addServer({ id: db_result.id, name: name });
       res.json({ success: true, server: name, id: db_result.id });
     } else {
       res.json({ success: false, server: name });
@@ -77,6 +78,7 @@ MCProuter.post("/call", async (req, res) => {
 MCProuter.post("/disconnect", async (req, res) => {
   try {
     await disconnectMCP(req.body.server);
+    mcps.removeServer(req.body.server);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({
@@ -89,7 +91,6 @@ MCProuter.post("/disconnect", async (req, res) => {
 MCProuter.get("/get-all", async (req, res) => {
   try {
     const servers = await getMcpServers();
-    console.log({ servers });
     res.status(200).json({ success: true, servers });
   } catch (error) {
     console.log(error);

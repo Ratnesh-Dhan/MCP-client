@@ -1,6 +1,5 @@
-// import { mcpManager } from "@/lib/mcp/manager";
-
 import { mcpManager } from "../lib/manager.js";
+import { mcps } from "../lib/mcpManager.js";
 
 export async function connectMCP(
   name: string,

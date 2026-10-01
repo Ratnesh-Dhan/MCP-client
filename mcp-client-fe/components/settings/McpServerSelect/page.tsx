@@ -121,7 +121,7 @@ export default function McpServerSelect({
             : null}
         </div>
 
-        <div className="relative">
+        {/* <div className="relative">
           <Plug className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <select
             id="mcp-server"
@@ -136,9 +136,9 @@ export default function McpServerSelect({
               </option>
             ))}
           </select>
-        </div>
+        </div> */}
       </div>
-      {selected && (
+      {/* {selected && (
         <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-950/50">
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Working directory
@@ -165,7 +165,7 @@ export default function McpServerSelect({
             Connect server
           </>
         )}
-      </button>
+      </button> */}
       <AddMcpModal
         open={addMcpOpen}
         onClose={() => setAddMcpOpen(false)}

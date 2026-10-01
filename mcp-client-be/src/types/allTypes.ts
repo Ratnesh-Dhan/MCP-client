@@ -51,7 +51,5 @@ export type MCPTool = {
 };
 
 export type buildAgentGraphType = {
-  model: string;
-  serverName: string;
   checkpointer: any;
 };

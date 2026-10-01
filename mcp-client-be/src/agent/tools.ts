@@ -3,15 +3,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 
-// type MCPTool = {
-//   name: string;
-//   description?: string;
-//   inputSchema: {
-//     type: string;
-//     properties?: Record<string, any>;
-//     required?: string[];
-//   };
-// };
 type MCPTool = {
   name: string;
   description?: string;

@@ -20,14 +20,11 @@ import {
   getHumanMessageIndices,
   trimMessages,
 } from "./supports/trimMessages.js";
+import { networkManager } from "../lib/networkManager.js";
 
-export async function buildAgentGraph({
-  model,
-  serverName,
-  checkpointer,
-}: buildAgentGraphType) {
-  const tools = await getAgentTools(serverName);
-
+export async function buildAgentGraph({ checkpointer }: buildAgentGraphType) {
+  const tools = await getAgentTools();
+  const model = networkManager.getModel();
   const llmWithTools = await createOllamaModel(model, [
     ...tools,
     webResearchTool,
