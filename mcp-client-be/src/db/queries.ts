@@ -1,6 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "./client.js";
 import { userSettings, mcpServers, mcpTools } from "./schema.js";
+import { DbTool } from "../types/allTypes.js";
 
 // Get all user Settings
 export async function getUserSettings() {
@@ -19,7 +20,7 @@ export async function updateNetwork(modelNetwork: string) {
   }
   return db
     .update(userSettings)
-    .set({ modelNetwork, modelName:"" })
+    .set({ modelNetwork, modelName: "" })
     .where(eq(userSettings.id, existing[0].id))
     .returning();
 }
@@ -93,7 +94,7 @@ export async function deleteMcpServer(id: number) {
 }
 
 // Get all enabled tools for an enabled MCP Server
-export async function getMcpTools(serverId: number) {
+export async function getEnabledMcpToolsWithNestedServers(serverId: number) {
   return db
     .select()
     .from(mcpTools)
@@ -105,6 +106,18 @@ export async function getMcpTools(serverId: number) {
         eq(mcpServers.enabled, true),
       ),
     );
+}
+
+export async function getMcpTools(serverId: number): Promise<DbTool[]> {
+  return db
+    .select({
+      id: mcpTools.id,
+      mcpServerId: mcpTools.mcpServerId,
+      name: mcpTools.name,
+      enabled: mcpTools.enabled,
+    })
+    .from(mcpTools)
+    .where(eq(mcpTools.mcpServerId, serverId));
 }
 
 // Add a tool

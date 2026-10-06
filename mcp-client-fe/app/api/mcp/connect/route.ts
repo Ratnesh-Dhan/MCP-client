@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       success: result.success,
       server: result.server,
       id: result.id ?? null,
+      tools: result.tools ?? [],
     });
   } catch (error) {
     console.error("MCP Connection Error: ", error);

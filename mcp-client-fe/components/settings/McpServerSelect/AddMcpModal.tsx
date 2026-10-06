@@ -42,6 +42,7 @@ export default function AddMcpModal({
     setLoading(true);
     try {
       const argy: string[] = args.split(",").map((arg) => arg.trim());
+      console.log("argy: ", argy);
 
       const res = await fetch("/api/mcp/connect", {
         method: "POST",
@@ -64,6 +65,7 @@ export default function AddMcpModal({
           args: argy,
           cwd: cwd,
           enabled: true,
+          tools: response.tools,
         };
 
         setMcpServers((prevServers) => {

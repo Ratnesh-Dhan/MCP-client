@@ -81,6 +81,7 @@ export default function McpServerSelect({
           args: ele.args,
           cwd: ele.cwd,
           enabled: ele.enabled,
+          tools: ele.tools,
         });
       });
       setMcpServers(servers);

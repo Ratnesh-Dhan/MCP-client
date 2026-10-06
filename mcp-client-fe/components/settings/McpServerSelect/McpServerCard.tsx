@@ -15,11 +15,27 @@ export default function McpServerCard({
 }: McpServerCardProps) {
   const [showTools, setShowTools] = useState(false);
 
-  const onDelete = (id: number) => {
+  const onDelete = async (id: number, server: string) => {
     try {
-      setMcpServers((prevServers) =>
-        prevServers.filter((server) => server.id !== id),
-      );
+      const response = await fetch("/api/mcp/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: id,
+          servernName: server,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete MCP server");
+      }
+      const data = await response.json();
+      if (data.success) {
+        setMcpServers((prevServers) =>
+          prevServers.filter((server) => server.id !== id),
+        );
+      }
     } catch (error) {
       console.log(error);
     }
@@ -115,7 +131,7 @@ export default function McpServerCard({
         {/* Delete */}
         <button
           type="button"
-          onClick={() => onDelete(server.id)}
+          onClick={() => onDelete(server.id, server.name)}
           className="rounded-lg p-2 text-zinc-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
         >
           <Trash2 className="h-4 w-4" />

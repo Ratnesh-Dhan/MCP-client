@@ -6,7 +6,6 @@ type Server = {
 };
 class MCP {
   private servers: Server[] = [];
-  // Need to make something for tools so we do not save tool on off on db
   async load() {
     const IncommingServers = await getLiveMcpServer();
     this.servers = IncommingServers.map((server) => ({

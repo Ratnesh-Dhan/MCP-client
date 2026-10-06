@@ -34,6 +34,9 @@ class MCPManager {
       }
     }
     // Process.env things
+    console.log("ARGS: ", args);
+    console.log("COMMAND: ", command);
+    console.log("CWD: ", cwd);
 
     const transport = new StdioClientTransport({
       command,

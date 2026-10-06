@@ -50,6 +50,7 @@ export interface ModelNetwork {
 
 export type McpTool = {
   id: number;
+  serverId: number;
   name: string;
   enabled: boolean;
 };
