@@ -62,5 +62,6 @@ export type McpServer = {
   args: string[];
   cwd: string | null;
   enabled: boolean;
+  status: "connected" | "connecting" | "failed";
   tools?: McpTool[];
 };

@@ -1,4 +1,6 @@
+import { getLiveMcpServer } from "../db/queries.js";
 import { mcpManager } from "../lib/manager.js";
+import { mcps } from "../lib/mcpManager.js";
 
 export async function connectMCP(
   name: string,
@@ -60,4 +62,29 @@ export async function callMCPTool(
 
 export async function disconnectMCP(server: string) {
   return mcpManager.disconnect(server);
+}
+
+export async function connectConfiguredMCPServers() {
+  const servers = await getLiveMcpServer();
+  await Promise.all(
+    servers.map(async (server) => {
+      try {
+        await connectMCP(
+          server.name,
+          server.command,
+          (server.args as string[]) ?? [],
+          {},
+          server.cwd ?? undefined,
+        );
+        mcps.addServer({ id: server.id, name: server.name });
+        return { name: server.name, status: "connected" };
+      } catch (error) {
+        return {
+          name: server.name,
+          connected: false,
+          error: error instanceof Error ? error.message : "Connection failed",
+        };
+      }
+    }),
+  );
 }

@@ -14,6 +14,7 @@ import {
 } from "../db/queries.js";
 import { mcps } from "../lib/mcpManager.js";
 import { DbMCPServer, DbTool } from "../types/allTypes.js";
+import { mcpEvents } from "../lib/mcpEvents.js";
 
 const MCProuter = Router();
 
@@ -145,4 +146,25 @@ MCProuter.delete("/delete", async (req, res) => {
     });
   }
 });
+
+// MCP server status events
+MCProuter.get("/mcpStatusEvents", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  res.flushHeaders();
+
+  const sendStatus = (status: unknown) => {
+    res.write(`event: mcp-status\n`);
+    res.write(`data: ${JSON.stringify(status)}\n\n`);
+  };
+
+  mcpEvents.on("status", sendStatus);
+
+  req.on("close", () => {
+    mcpEvents.off("status", sendStatus);
+  });
+});
+
 export default MCProuter;

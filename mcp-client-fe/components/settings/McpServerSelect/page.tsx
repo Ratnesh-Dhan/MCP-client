@@ -81,6 +81,7 @@ export default function McpServerSelect({
           args: ele.args,
           cwd: ele.cwd,
           enabled: ele.enabled,
+          status: "connecting",
           tools: ele.tools,
         });
       });
@@ -93,6 +94,30 @@ export default function McpServerSelect({
 
   useEffect(() => {
     pullMcpServers();
+
+    const MCPStatusEvents = new EventSource(
+      "/api/mcp/mcp-server-status-events",
+    );
+
+    MCPStatusEvents.addEventListener("mcp-status", (event) => {
+      const status = JSON.parse(event.data);
+      console.log("MCP STATUS: ", status);
+      setMcpServers((prev) =>
+        prev.map((server) =>
+          server.name === status.name
+            ? {
+                ...server,
+                status: status.status,
+                error: status.error,
+              }
+            : server,
+        ),
+      );
+    });
+
+    return () => {
+      MCPStatusEvents.close();
+    };
   }, []);
 
   return (
