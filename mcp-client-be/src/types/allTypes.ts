@@ -70,3 +70,8 @@ export type DbTool = {
   name: string;
   enabled: boolean;
 };
+
+export type Server = {
+  name: string;
+  tools?: string[];
+};

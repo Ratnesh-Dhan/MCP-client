@@ -1,7 +1,7 @@
 // import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { StateGraph, START, END } from "@langchain/langgraph";
 import { AgentState } from "./state.js";
-import { getAgentTools } from "./tools.js";
+import { getMainAgentTools } from "./tools.js";
 import { createOllamaModel } from "./nodes/llm.js";
 import { buildAgentGraphType } from "../types/allTypes.js";
 import { getCurrentNetwork } from "../services/currentNetworkDB.js";
@@ -23,7 +23,7 @@ import {
 import { networkManager } from "../lib/networkManager.js";
 
 export async function buildAgentGraph({ checkpointer }: buildAgentGraphType) {
-  const tools = await getAgentTools();
+  const tools = await getMainAgentTools();
   const model = networkManager.getModel();
   const llmWithTools = await createOllamaModel(model, [
     ...tools,
