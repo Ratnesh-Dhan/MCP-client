@@ -49,3 +49,5 @@ next-env.d.ts
 
 # database file
 *.db
+# mcp-client-be/data/jinah.db
+mcp-client-be/dummy_database/current_network.json
