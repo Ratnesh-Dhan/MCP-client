@@ -44,7 +44,7 @@ export default function AddMcpModal({
       const argy: string[] = args.split(",").map((arg) => arg.trim());
       console.log("argy: ", argy);
 
-      const res = await fetch("/api/mcp/connect", {
+      const res = await fetch("/api/mcp/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,6 +65,7 @@ export default function AddMcpModal({
           args: argy,
           cwd: cwd,
           enabled: true,
+          status: "connecting",
           tools: response.tools,
         };
 

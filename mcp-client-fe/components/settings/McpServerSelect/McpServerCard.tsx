@@ -1,6 +1,7 @@
 "use client";
 
 import { McpServer } from "@/types/allTypes";
+import { METHODS } from "http";
 import { ChevronDown, Server, Trash2 } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 
@@ -41,16 +42,44 @@ export default function McpServerCard({
     }
   };
 
-  const onToggleServer = (id: number, status: boolean) => {
+  const onToggleServer = async (id: number, status: boolean) => {
+    setMcpServers((prevServers) =>
+      prevServers.map((server) =>
+        server.id === id ? { ...server, status: "connecting" } : server,
+      ),
+    );
     if (status) {
-      //start the mcp server
+      const response = await fetch("/api/mcp/connect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: id }),
+      });
+      const result = await response.json();
+      if (result.success) console.log(`${server.name} Connected.`);
+      else console.log(`MCP ${server.name} toogle on Error : `, result.error);
     } else {
-      // turn off the mcp server
+      const response = await fetch("/api/mcp/disconnect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ server: server.name, id: id }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log(`${server.name} Disconnected.`);
+      } else {
+        console.log(`MCP ${server.name} toogle off Error : `, result.error);
+      }
     }
 
     setMcpServers((prevServer) =>
       prevServer.map((server) =>
-        server.id === id ? { ...server, enabled: status } : server,
+        server.id === id
+          ? { ...server, enabled: status, status: "connected" }
+          : server,
       ),
     );
   };
@@ -101,19 +130,23 @@ export default function McpServerCard({
         </span>
 
         {/* Server switch */}
-        <button
-          type="button"
-          onClick={() => onToggleServer(server.id, !server.enabled)}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-            server.enabled ? "bg-violet-600" : "bg-zinc-300 dark:bg-zinc-700"
-          }`}
-        >
-          <span
-            className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
-              server.enabled ? "left-6" : "left-1"
+        {server.status === "connecting" ? (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onToggleServer(server.id, !server.enabled)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+              server.enabled ? "bg-violet-600" : "bg-zinc-300 dark:bg-zinc-700"
             }`}
-          />
-        </button>
+          >
+            <span
+              className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
+                server.enabled ? "left-6" : "left-1"
+              }`}
+            />
+          </button>
+        )}
 
         {/* Tools button */}
         <button

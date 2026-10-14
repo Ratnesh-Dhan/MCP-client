@@ -9,8 +9,10 @@ import {
   addMcpServer,
   addMcpTool,
   deleteMcpServer,
+  getMcpServer,
   getMcpServers,
   getMcpTools,
+  toggleMCPServer,
 } from "../db/queries.js";
 import { mcps } from "../lib/mcpManager.js";
 import { DbMCPServer, DbTool } from "../types/allTypes.js";
@@ -33,7 +35,7 @@ MCProuter.post("/connect_old", async (req, res) => {
 });
 
 // Connect MCP server on new ADD
-MCProuter.post("/connect", async (req, res) => {
+MCProuter.post("/add", async (req, res) => {
   try {
     const { name, command, args, cwd } = req.body;
     const client = await connectMCP(name, command, args ?? [], {}, cwd);
@@ -46,6 +48,7 @@ MCProuter.post("/connect", async (req, res) => {
         command: command,
         args: args ?? [],
         cwd: cwd ?? "",
+        enabled: true,
       };
       const [db_result] = await addMcpServer(data);
       const tools: DbTool[] = [];
@@ -102,14 +105,43 @@ MCProuter.post("/call", async (req, res) => {
   }
 });
 
+// Toggle disconnect
 MCProuter.post("/disconnect", async (req, res) => {
   try {
-    await disconnectMCP(req.body.server);
-    mcps.removeServer(req.body.server);
+    await disconnectMCP(req.body.name);
+    console.log(`MCP server $${req.body.name} disconnected.`);
+    mcps.removeServer(req.body.name);
+    await toggleMCPServer(req.body.id, false);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({
+      success: false,
       error: error instanceof Error ? error.message : "Failed to Disconnect",
+    });
+  }
+});
+
+// Toggle connect
+MCProuter.post("/connect", async (req, res) => {
+  try {
+    const { id } = req.body;
+    const server = await getMcpServer(id);
+    if (server.length < 1) throw new Error("MCP server not found in DB.");
+    const { name, command, args, cwd } = server[0];
+    await connectMCP(
+      name,
+      command,
+      (args as string[]) ?? [],
+      {},
+      cwd ?? undefined,
+    );
+    const result = await toggleMCPServer(id, true);
+    console.log(`MCP server id connected. \n ${result}`);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to Connect",
     });
   }
 });

@@ -72,6 +72,7 @@ export async function addMcpServer(data: {
   command: string;
   args?: string[];
   cwd?: string;
+  enabled: boolean;
 }) {
   return db.insert(mcpServers).values(data).returning();
 }
@@ -79,13 +80,27 @@ export async function addMcpServer(data: {
 // Update MCP Server
 export async function updateMcpServer(
   id: number,
-  data: { name?: string; command?: string; args?: string[]; cwd?: string },
+  data: {
+    name?: string;
+    command?: string;
+    args?: string[];
+    cwd?: string;
+    enabled: boolean;
+  },
 ) {
   return db
     .update(mcpServers)
     .set(data)
     .where(eq(mcpServers.id, id))
     .returning();
+}
+
+// Enable/Disble MCP server
+export async function toggleMCPServer(id: number, status: boolean) {
+  return db
+    .update(mcpServers)
+    .set({ enabled: status })
+    .where(eq(mcpServers.id, id));
 }
 
 // Delete MCP Server
