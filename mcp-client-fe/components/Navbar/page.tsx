@@ -14,19 +14,19 @@ const Navbar = () => {
     { href: "/Settings", label: "Settings", icon: Settings },
   ];
 
-  useEffect(() => {
-    const backendHealth = async () => {
-      const response = await fetch("/api/health", {
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        setMcpStatus(false);
-      }
-    };
-    backendHealth();
-    const interval = setInterval(backendHealth, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  // useEffect(() => {
+  //   const backendHealth = async () => {
+  //     const response = await fetch("/api/health", {
+  //       cache: "no-store",
+  //     });
+  //     if (!response.ok) {
+  //       setMcpStatus(false);
+  //     }
+  //   };
+  //   backendHealth();
+  //   const interval = setInterval(backendHealth, 10000);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/75">

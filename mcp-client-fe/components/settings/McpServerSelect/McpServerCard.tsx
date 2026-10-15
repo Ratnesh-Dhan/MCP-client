@@ -1,7 +1,6 @@
 "use client";
 
 import { McpServer } from "@/types/allTypes";
-import { METHODS } from "http";
 import { ChevronDown, Server, Trash2 } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 
@@ -85,6 +84,7 @@ export default function McpServerCard({
   };
 
   const onToggleTool = (serverId: number, toolId: number, status: boolean) => {
+    console.log(server);
     setMcpServers((prevServers) =>
       prevServers.map((server) =>
         server.id === serverId
@@ -130,9 +130,7 @@ export default function McpServerCard({
         </span>
 
         {/* Server switch */}
-        {server.status === "connecting" ? (
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-        ) : (
+        {server.status === "connected" ? (
           <button
             type="button"
             onClick={() => onToggleServer(server.id, !server.enabled)}
@@ -146,6 +144,8 @@ export default function McpServerCard({
               }`}
             />
           </button>
+        ) : (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
         )}
 
         {/* Tools button */}

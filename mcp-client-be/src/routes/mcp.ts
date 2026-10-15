@@ -17,6 +17,7 @@ import {
 import { mcps } from "../lib/mcpManager.js";
 import { DbMCPServer, DbTool } from "../types/allTypes.js";
 import { mcpEvents } from "../lib/mcpEvents.js";
+import { mcpManager } from "../lib/manager.js";
 
 const MCProuter = Router();
 
@@ -154,7 +155,11 @@ MCProuter.get("/get-all", async (req, res) => {
       const tools: DbTool[] = await getMcpTools(server.id);
       server.tools = tools;
     }
-    res.status(200).json({ success: true, servers });
+    const result = servers.map((server) => ({
+      ...server,
+      status: mcpManager.isConnected(server.name) ? "connected" : "connecting",
+    }));
+    res.status(200).json({ success: true, servers: result });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, error: error });
@@ -188,15 +193,26 @@ MCProuter.get("/mcpStatusEvents", (req, res) => {
   res.flushHeaders();
 
   const sendStatus = (status: unknown) => {
+    console.log("SSE sending:", status);
     res.write(`event: mcp-status\n`);
     res.write(`data: ${JSON.stringify(status)}\n\n`);
   };
 
   mcpEvents.on("status", sendStatus);
-
+  console.log("SSE LISTENER REGISTERED");
+  mcpEvents.emit("status", {
+    name: "Jinah",
+    status: "connected",
+  });
   req.on("close", () => {
     mcpEvents.off("status", sendStatus);
+    console.log(
+      "SSE LISTENER REMOVED. Remaining:",
+      mcpEvents.listenerCount("status"),
+    );
   });
 });
+
+// MCP toole toggle
 
 export default MCProuter;
