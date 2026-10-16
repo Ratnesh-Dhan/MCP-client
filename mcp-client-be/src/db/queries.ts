@@ -1,0 +1,158 @@
+import { eq, and } from "drizzle-orm";
+import { db } from "./client.js";
+import { userSettings, mcpServers, mcpTools } from "./schema.js";
+import { DbTool } from "../types/allTypes.js";
+
+// Get all user Settings
+export async function getUserSettings() {
+  return db.select().from(userSettings); //.limit(1)
+}
+
+// Update model network
+export async function updateNetwork(modelNetwork: string) {
+  const existing = await getUserSettings();
+
+  if (existing.length === 0) {
+    return db
+      .insert(userSettings)
+      .values({ modelNetwork, modelName: "" })
+      .returning();
+  }
+  return db
+    .update(userSettings)
+    .set({ modelNetwork, modelName: "" })
+    .where(eq(userSettings.id, existing[0].id))
+    .returning();
+}
+
+// Upaate model on the network
+export async function updateModel({
+  modelNetwork,
+  modelName,
+}: {
+  modelNetwork: string;
+  modelName: string;
+}) {
+  const existing = await getUserSettings();
+  if (existing.length === 0) {
+    return db
+      .insert(userSettings)
+      .values({ modelNetwork, modelName })
+      .returning();
+  }
+  return db
+    .update(userSettings)
+    .set({ modelName })
+    .where(
+      and(
+        eq(userSettings.modelNetwork, modelNetwork),
+        eq(userSettings.id, existing[0].id),
+      ),
+    );
+}
+
+// Get all MCP Servers
+export async function getMcpServers() {
+  return db.select().from(mcpServers);
+}
+
+// Get only Live MCP Servers
+export async function getLiveMcpServer() {
+  return db.select().from(mcpServers).where(eq(mcpServers.enabled, true));
+}
+
+// Get one MCP Server
+export async function getMcpServer(id: number) {
+  return db.select().from(mcpServers).where(eq(mcpServers.id, id)).limit(1);
+}
+
+// Add MCP Server
+export async function addMcpServer(data: {
+  name: string;
+  command: string;
+  args?: string[];
+  cwd?: string;
+  enabled: boolean;
+}) {
+  return db.insert(mcpServers).values(data).returning();
+}
+
+// Update MCP Server
+export async function updateMcpServer(
+  id: number,
+  data: {
+    name?: string;
+    command?: string;
+    args?: string[];
+    cwd?: string;
+    enabled: boolean;
+  },
+) {
+  return db
+    .update(mcpServers)
+    .set(data)
+    .where(eq(mcpServers.id, id))
+    .returning();
+}
+
+// Enable/Disble MCP server
+export async function toggleMCPServer(id: number, status: boolean) {
+  return db
+    .update(mcpServers)
+    .set({ enabled: status })
+    .where(eq(mcpServers.id, id));
+}
+
+// Delete MCP Server
+export async function deleteMcpServer(id: number) {
+  return db.delete(mcpServers).where(eq(mcpServers.id, id)).returning();
+}
+
+// Get all enabled tools for an enabled MCP Server
+export async function getEnabledMcpToolsWithNestedServers(serverId: number) {
+  return db
+    .select()
+    .from(mcpTools)
+    .innerJoin(mcpServers, eq(mcpTools.mcpServerId, serverId))
+    .where(
+      and(
+        eq(mcpTools.mcpServerId, serverId),
+        eq(mcpTools.enabled, true),
+        eq(mcpServers.enabled, true),
+      ),
+    );
+}
+
+export async function getMcpTools(serverId: number): Promise<DbTool[]> {
+  return db
+    .select({
+      id: mcpTools.id,
+      mcpServerId: mcpTools.mcpServerId,
+      name: mcpTools.name,
+      enabled: mcpTools.enabled,
+    })
+    .from(mcpTools)
+    .where(eq(mcpTools.mcpServerId, serverId));
+}
+
+// Add a tool
+export async function addMcpTool(data: {
+  mcpServerId: number;
+  name: string;
+  enabled?: boolean;
+}) {
+  return db.insert(mcpTools).values(data).returning();
+}
+
+// Enable or Disable a tool
+export async function setMcpToolEnabled(toolId: number, enabled: boolean) {
+  return db
+    .update(mcpTools)
+    .set({ enabled })
+    .where(eq(mcpTools.id, toolId))
+    .returning();
+}
+
+export async function deleteMcpTool(toolId: number) {
+  return db.delete(mcpTools).where(eq(mcpTools.id, toolId)).returning();
+}

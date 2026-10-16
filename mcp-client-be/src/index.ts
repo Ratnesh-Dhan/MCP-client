@@ -6,9 +6,15 @@ import OllamaRouter from "./routes/ollama.js";
 import SupportRouter from "./routes/support.js";
 import AgentRouter from "./routes/agent.js";
 import LangGraphAgentRouter from "./routes/langGraphAgent.js";
+import { networkManager } from "./lib/networkManager.js";
+import { connectConfiguredMCPServers } from "./services/mcp.js";
 
 const app = express();
 app.use(express.json());
+
+// Starting up Managers
+await networkManager.load();
+await connectConfiguredMCPServers();
 
 app.use(
   cors({

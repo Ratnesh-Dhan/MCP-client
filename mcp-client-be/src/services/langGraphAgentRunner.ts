@@ -1,6 +1,3 @@
-import { getAgentTools } from "../agent/tools.js";
-import { classifyIntent } from "./classifier.js";
-import { runDirectChatStream } from "./directChatRunner.js";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import {
   StreamChunk,
@@ -8,41 +5,19 @@ import {
   typeRunAgentStream,
 } from "../types/agentTypes.js";
 import { getAgentGraph } from "../agent/graphCache.js";
+import { networkManager } from "../lib/networkManager.js";
 
 export async function runAgentStream({
-  model,
   messages,
-  serverName,
   threadId,
   signal,
 }: typeRunAgentStream) {
-  // 1. Get available MCP tools for this server
-  const tools = await getAgentTools(serverName);
-  const toolNames = tools.map((t) => t.name);
-
-  // 2. Extract last user message & last 8 conversation for context
+  // 1. Extract last user message & last 8 conversation for context
   const lastUserMessage = messages[messages.length - 1]?.content || "";
   const lastMessages = messages.slice(-8);
   const toolHistory: ToolExecution[] = [];
 
-  // // 3. Classify intent (Fast non-streaming call)
-  // const mode = await classifyIntent({
-  //   model,
-  //   userMessage: lastUserMessage,
-  //   conversation: lastMessages,
-  //   availableTools: toolNames,
-  //   signal: signal,
-  // });
-
-  // console.log(`[ROUTER]: Executing request via '${mode.toUpperCase()}' mode.`);
-
-  // // 4. ROUTE A: Direct Chat (Fast path - no LangGraph overhead)
-  // if (mode === "chat_fast" || mode === "chat_think") {
-  //   return runDirectChatStream({ model, messages, signal, mode });
-  // }
-
-  // 5. ROUTE B: Full Agent Graph (When MCP tools are required)
-  const graph = await getAgentGraph(model, serverName);
+  const graph = await getAgentGraph(threadId);
 
   async function* generate(): AsyncGenerator<StreamChunk> {
     try {

@@ -1,7 +1,7 @@
 // import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { StateGraph, START, END } from "@langchain/langgraph";
 import { AgentState } from "./state.js";
-import { getAgentTools } from "./tools.js";
+import { getMainAgentTools } from "./tools.js";
 import { createOllamaModel } from "./nodes/llm.js";
 import { buildAgentGraphType } from "../types/allTypes.js";
 import { getCurrentNetwork } from "../services/currentNetworkDB.js";
@@ -20,14 +20,11 @@ import {
   getHumanMessageIndices,
   trimMessages,
 } from "./supports/trimMessages.js";
+import { networkManager } from "../lib/networkManager.js";
 
-export async function buildAgentGraph({
-  model,
-  serverName,
-  checkpointer,
-}: buildAgentGraphType) {
-  const tools = await getAgentTools(serverName);
-
+export async function buildAgentGraph({ checkpointer }: buildAgentGraphType) {
+  const tools = await getMainAgentTools();
+  const model = networkManager.getModel();
   const llmWithTools = await createOllamaModel(model, [
     ...tools,
     webResearchTool,
@@ -56,18 +53,25 @@ export async function buildAgentGraph({
       toolHistoryPrompt,
       ...trimmedMessages,
     ];
-    const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
-    console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
-    console.log(
-      "LANGGRAPH: Tool calls: ",
-      JSON.stringify(responseMessage.tool_calls, null, 2),
-    );
-    console.log("LANGGRAPH: Message count: ", state.messages.length);
+    try {
+      const responseMessage = await llmWithTools.invoke(fullPromptArray); //state.messages
+      console.log("LANGGRAPH: Ollama response: ", responseMessage.content);
+      console.log(
+        "LANGGRAPH: Tool calls: ",
+        JSON.stringify(responseMessage.tool_calls, null, 2),
+      );
+      console.log("LANGGRAPH: Message count: ", state.messages.length);
 
-    return {
-      messages: [responseMessage],
-      llmCalls: 1,
-    };
+      return {
+        messages: [responseMessage],
+        llmCalls: 1,
+      };
+    } catch (error) {
+      console.log(`[LLM Invoke ERROR ${error}`);
+      return {
+        messages: [],
+      };
+    }
   }
 
   const webSearchAgent = await webAgentGraph(model, getCurrentNetwork()["url"]);
@@ -87,7 +91,8 @@ export async function buildAgentGraph({
       return "tools";
     }
     // If model describe a plan but did not call a tool.
-    const isPlan = looksLikePlan(lastMessage.content);
+    // const isPlan = looksLikePlan(lastMessage.content);
+
     // if model gave empty response while planning
     const content =
       typeof lastMessage.content === "string"
@@ -95,7 +100,8 @@ export async function buildAgentGraph({
         : JSON.stringify(lastMessage.content).trim();
     const isEmptyResponse = content.length === 0;
 
-    if ((isPlan || isEmptyResponse) && state.planRetryCount < 2) {
+    // if ((isPlan || isEmptyResponse) && state.planRetryCount < 2) {  // I am stopping is plan . because it fireing on evry normal talk or where tool is not needed.
+    if (isEmptyResponse && state.planRetryCount < 2) {
       return "recoverFromPlan";
     }
     return END;

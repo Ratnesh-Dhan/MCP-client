@@ -51,7 +51,27 @@ export type MCPTool = {
 };
 
 export type buildAgentGraphType = {
-  model: string;
-  serverName: string;
   checkpointer: any;
+};
+
+export type DbMCPServer = {
+  id: number;
+  name: string;
+  command: string;
+  args?: unknown;
+  cwd: string | null;
+  enabled: boolean;
+  tools?: DbTool[];
+};
+
+export type DbTool = {
+  id: number;
+  mcpServerId: number;
+  name: string;
+  enabled: boolean;
+};
+
+export type Server = {
+  name: string;
+  tools?: string[];
 };

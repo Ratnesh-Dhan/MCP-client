@@ -26,5 +26,5 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   models: [],
   modelsLoadedForNetwork: "",
   setModelsForNetwork: (network, models) =>
-    set({ models, modelsLoadedForNetwork: network }),
+    set({ modelsLoadedForNetwork: network, models }),
 }));
