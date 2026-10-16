@@ -40,6 +40,25 @@ class MCP {
     }
   }
 
+  addTool(serverId: number, tool: string) {
+    const server = this.servers.get(serverId);
+    if (!server) return;
+
+    server.tools ??= [];
+
+    if (!server.tools.includes(tool)) {
+      server.tools.push(tool);
+    }
+    this.servers.set(serverId, server);
+  }
+
+  removeTool(serverId: number, tool: string) {
+    const server = this.servers.get(serverId);
+    if (!server || !server.tools) return;
+    server.tools = server.tools.filter((t) => t !== tool);
+    this.servers.set(serverId, server);
+  }
+
   removeServer(serverName: string) {
     // this.servers = this.servers.filter((s) => s.name !== server);
     for (const [id, server] of this.servers) {

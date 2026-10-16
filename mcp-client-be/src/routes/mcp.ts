@@ -12,12 +12,14 @@ import {
   getMcpServer,
   getMcpServers,
   getMcpTools,
+  setMcpToolEnabled,
   toggleMCPServer,
 } from "../db/queries.js";
 import { mcps } from "../lib/mcpManager.js";
 import { DbMCPServer, DbTool } from "../types/allTypes.js";
 import { mcpEvents } from "../lib/mcpEvents.js";
 import { mcpManager } from "../lib/manager.js";
+import { success } from "zod";
 
 const MCProuter = Router();
 
@@ -214,5 +216,39 @@ MCProuter.get("/mcpStatusEvents", (req, res) => {
 });
 
 // MCP toole toggle
+MCProuter.patch("/tool/:toolId/toggle", async (req, res) => {
+  try {
+    const toolId = Number(req.params.toolId);
+    const { enabled } = req.body;
+
+    if (!Number.isInteger(toolId) || toolId <= 0) {
+      return res.status(400).json({ success: false, error: "Invalid tool ID" });
+    }
+    if (typeof enabled !== "boolean") {
+      return res
+        .status(400)
+        .json({ success: false, error: "'enabled' must be boolean" });
+    }
+
+    const updatedTool = await setMcpToolEnabled(toolId, enabled);
+    if (enabled) {
+      mcps.addTool(updatedTool[0].mcpServerId, updatedTool[0].name);
+    } else {
+      mcps.removeTool(updatedTool[0].mcpServerId, updatedTool[0].name);
+    }
+
+    if (updatedTool.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, error: "MCP tool not found" });
+    }
+    return res.status(200).json({ success: true, tool: updatedTool[0] });
+  } catch (error) {
+    console.error("Failed to toggle MCP tool: ", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to update MCP tool." });
+  }
+});
 
 export default MCProuter;

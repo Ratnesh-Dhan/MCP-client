@@ -14,6 +14,7 @@ export default function McpServerCard({
   setMcpServers,
 }: McpServerCardProps) {
   const [showTools, setShowTools] = useState(false);
+  const [toolToggleControl, setToolToggleControl] = useState<number>(0);
 
   const onDelete = async (id: number, server: string) => {
     try {
@@ -83,20 +84,43 @@ export default function McpServerCard({
     );
   };
 
-  const onToggleTool = (serverId: number, toolId: number, status: boolean) => {
-    console.log(server);
-    setMcpServers((prevServers) =>
-      prevServers.map((server) =>
-        server.id === serverId
-          ? {
-              ...server,
-              tools: server.tools?.map((tool) =>
-                tool.id === toolId ? { ...tool, enabled: status } : tool,
-              ),
-            }
-          : server,
-      ),
-    );
+  const onToggleTool = async (
+    serverId: number,
+    toolId: number,
+    status: boolean,
+  ) => {
+    try {
+      console.log("WHAT THE");
+      setToolToggleControl(toolId);
+      const res = await fetch(`/api/mcp/toggle-tool/${toolId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: status }),
+      });
+      console.log("FUCK");
+      const data = await res.json();
+      console.log(data);
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to update MCP tool");
+      }
+      console.log("Successfuly updated tool ", data.tool);
+      setMcpServers((prevServers) =>
+        prevServers.map((server) =>
+          server.id === serverId
+            ? {
+                ...server,
+                tools: server.tools?.map((tool) =>
+                  tool.id === toolId ? { ...tool, enabled: status } : tool,
+                ),
+              }
+            : server,
+        ),
+      );
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setToolToggleControl(0);
+    }
   };
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
@@ -197,23 +221,28 @@ export default function McpServerCard({
                       </div>
 
                       {/* Tool switch */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onToggleTool(server.id, tool.id, !tool.enabled)
-                        }
-                        className={`relative h-5 w-9 rounded-full transition ${
-                          tool.enabled
-                            ? "bg-violet-600"
-                            : "bg-zinc-300 dark:bg-zinc-700"
-                        }`}
-                      >
-                        <span
-                          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${
-                            tool.enabled ? "left-4.5" : "left-0.5"
+                      {toolToggleControl === tool.id ? (
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onToggleTool(server.id, tool.id, !tool.enabled)
+                          }
+                          className={`relative h-5 w-9 rounded-full transition ${
+                            tool.enabled
+                              ? "bg-violet-600"
+                              : "bg-zinc-300 dark:bg-zinc-700"
                           }`}
-                        />
-                      </button>
+                          disabled={toolToggleControl === tool.id}
+                        >
+                          <span
+                            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${
+                              tool.enabled ? "left-4.5" : "left-0.5"
+                            }`}
+                          />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
