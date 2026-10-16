@@ -91,7 +91,8 @@ export async function buildAgentGraph({ checkpointer }: buildAgentGraphType) {
       return "tools";
     }
     // If model describe a plan but did not call a tool.
-    const isPlan = looksLikePlan(lastMessage.content);
+    // const isPlan = looksLikePlan(lastMessage.content);
+
     // if model gave empty response while planning
     const content =
       typeof lastMessage.content === "string"
@@ -99,7 +100,8 @@ export async function buildAgentGraph({ checkpointer }: buildAgentGraphType) {
         : JSON.stringify(lastMessage.content).trim();
     const isEmptyResponse = content.length === 0;
 
-    if ((isPlan || isEmptyResponse) && state.planRetryCount < 2) {
+    // if ((isPlan || isEmptyResponse) && state.planRetryCount < 2) {  // I am stopping is plan . because it fireing on evry normal talk or where tool is not needed.
+    if (isEmptyResponse && state.planRetryCount < 2) {
       return "recoverFromPlan";
     }
     return END;
