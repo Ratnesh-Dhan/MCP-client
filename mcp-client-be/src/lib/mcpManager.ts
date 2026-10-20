@@ -15,27 +15,27 @@ class MCP {
       const db = getMcpTools(server.id);
       const tools: string[] = [];
       console.log("DB: ", db);
-      this.servers.set(server.id, { name: server.name, tools: tools ?? null });
+      this.servers.set(server.id, { name: server.name, category: server.category, tools: tools ?? null });
     });
   }
   getServers() {
     return this.servers;
   }
 
-  addServer(server: { id: number; name: string }) {
+  addServer(server: { id: number; name: string; category: string }) {
     // const isAlready = this.servers.some((s) => s.name === server.name);
     // if (!isAlready) {
     //   this.servers.push(server);
     // }
     if (!this.servers.has(server.id)) {
-      this.servers.set(server.id, { name: server.name });
+      this.servers.set(server.id, { name: server.name, category: server.category });
     }
   }
 
   addTools(serverName: string, tools: string[]) {
     for (const [id, server] of this.servers) {
       if (server.name === serverName) {
-        this.servers.set(id, { name: server.name, tools: tools });
+        this.servers.set(id, { name: server.name, tools: tools, category: server.category});
       }
     }
   }

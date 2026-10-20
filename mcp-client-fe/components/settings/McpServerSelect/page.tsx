@@ -84,6 +84,7 @@ export default function McpServerSelect({
       //     tools: ele.tools,
       //   });
       // });
+      console.log("this is the server fromt he DB : ", response.servers)
       setMcpServers(response.servers);
     } catch (error) {
       console.log(error);

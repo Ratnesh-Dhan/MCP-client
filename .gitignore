@@ -50,3 +50,4 @@ next-env.d.ts
 # database file
 *.db
 mcp-client-be/data/
+mcp-client-be/src/db/migrations/

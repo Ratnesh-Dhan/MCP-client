@@ -73,5 +73,6 @@ export type DbTool = {
 
 export type Server = {
   name: string;
+  category: string;
   tools?: string[];
 };

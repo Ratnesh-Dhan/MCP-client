@@ -73,6 +73,7 @@ export async function addMcpServer(data: {
   args?: string[];
   cwd?: string;
   enabled: boolean;
+  category: string;
 }) {
   return db.insert(mcpServers).values(data).returning();
 }

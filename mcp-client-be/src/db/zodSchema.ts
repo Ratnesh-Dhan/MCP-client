@@ -5,6 +5,7 @@ export const McpServerSchema = z.object({
   command: z.string().min(1),
   args: z.array(z.string()).optional(),
   cwd: z.string().optional(),
+  category: z.string().optional(),
 });
 
 export const ModelNetwork = z.object({
