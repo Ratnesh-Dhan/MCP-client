@@ -64,4 +64,5 @@ export type McpServer = {
   enabled: boolean;
   status: "connected" | "connecting" | "failed";
   tools?: McpTool[];
+  category?: string;
 };

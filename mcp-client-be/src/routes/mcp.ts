@@ -9,12 +9,18 @@ import {
   addMcpServer,
   addMcpTool,
   deleteMcpServer,
+  getMcpServer,
   getMcpServers,
   getMcpTools,
+  getUserSettings,
+  setMcpToolEnabled,
+  toggleMCPServer,
 } from "../db/queries.js";
 import { mcps } from "../lib/mcpManager.js";
 import { DbMCPServer, DbTool } from "../types/allTypes.js";
 import { mcpEvents } from "../lib/mcpEvents.js";
+import { mcpManager } from "../lib/manager.js";
+import { success } from "zod";
 
 const MCProuter = Router();
 
@@ -32,10 +38,22 @@ MCProuter.post("/connect_old", async (req, res) => {
   }
 });
 
-// Connect MCP server on new ADD
-MCProuter.post("/connect", async (req, res) => {
+// Get user settings (model network and model name)
+MCProuter.get("/user-settings",async (req, res)=>{
   try {
-    const { name, command, args, cwd } = req.body;
+    const settings = await getUserSettings();
+    console.log("User settigns: ", settings[0])
+    res.status(200).json({settings: settings[0]})
+  } catch(error){
+    console.error(error);
+    res.status(500).json({error: error instanceof Error? error.message : "Error while getting user settings from DB."})
+  }
+})
+
+// Connect MCP server on new ADD
+MCProuter.post("/add", async (req, res) => {
+  try {
+    const { name, command, args, cwd, category } = req.body;
     const client = await connectMCP(name, command, args ?? [], {}, cwd);
     console.log("Client connected.");
     const rawTools = await listMCPTools(name);
@@ -46,6 +64,8 @@ MCProuter.post("/connect", async (req, res) => {
         command: command,
         args: args ?? [],
         cwd: cwd ?? "",
+        enabled: true,
+        category: category,
       };
       const [db_result] = await addMcpServer(data);
       const tools: DbTool[] = [];
@@ -63,7 +83,7 @@ MCProuter.post("/connect", async (req, res) => {
           enabled: db_tool.enabled,
         });
       }
-      mcps.addServer({ id: db_result.id, name: name });
+      mcps.addServer({ id: db_result.id, name: name, category: category });
       res.json({ success: true, server: name, id: db_result.id, tools: tools });
     } else {
       res.json({ success: false, server: name });
@@ -102,14 +122,44 @@ MCProuter.post("/call", async (req, res) => {
   }
 });
 
+// Toggle disconnect
 MCProuter.post("/disconnect", async (req, res) => {
   try {
-    await disconnectMCP(req.body.server);
-    mcps.removeServer(req.body.server);
+    await disconnectMCP(req.body.name);
+    console.log(`MCP server $${req.body.name} disconnected.`);
+    mcps.removeServer(req.body.name);
+    await toggleMCPServer(req.body.id, false);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({
+      success: false,
       error: error instanceof Error ? error.message : "Failed to Disconnect",
+    });
+  }
+});
+
+// Toggle connect
+MCProuter.post("/connect", async (req, res) => {
+  try {
+    const { id } = req.body;
+    const server = await getMcpServer(id);
+    if (server.length < 1) throw new Error("MCP server not found in DB.");
+    const { name, command, args, cwd, category } = server[0];
+    await connectMCP(
+      name,
+      command,
+      (args as string[]) ?? [],
+      {},
+      cwd ?? undefined,
+    );
+    const result = await toggleMCPServer(id, true);
+    mcps.addServer({id: id, name: name, category: category})
+    console.log(`MCP server id connected. \n ${result}`);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to Connect",
     });
   }
 });
@@ -122,7 +172,11 @@ MCProuter.get("/get-all", async (req, res) => {
       const tools: DbTool[] = await getMcpTools(server.id);
       server.tools = tools;
     }
-    res.status(200).json({ success: true, servers });
+    const result = servers.map((server) => ({
+      ...server,
+      status: mcpManager.isConnected(server.name) ? "connected" : "connecting",
+    }));
+    res.status(200).json({ success: true, servers: result });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, error: error });
@@ -156,15 +210,57 @@ MCProuter.get("/mcpStatusEvents", (req, res) => {
   res.flushHeaders();
 
   const sendStatus = (status: unknown) => {
+    console.log("SSE sending:", status);
     res.write(`event: mcp-status\n`);
     res.write(`data: ${JSON.stringify(status)}\n\n`);
   };
 
   mcpEvents.on("status", sendStatus);
+  console.log("SSE LISTENER REGISTERED");
 
   req.on("close", () => {
     mcpEvents.off("status", sendStatus);
+    console.log(
+      "SSE LISTENER REMOVED. Remaining:",
+      mcpEvents.listenerCount("status"),
+    );
   });
+});
+
+// MCP toole toggle
+MCProuter.patch("/tool/:toolId/toggle", async (req, res) => {
+  try {
+    const toolId = Number(req.params.toolId);
+    const { enabled } = req.body;
+
+    if (!Number.isInteger(toolId) || toolId <= 0) {
+      return res.status(400).json({ success: false, error: "Invalid tool ID" });
+    }
+    if (typeof enabled !== "boolean") {
+      return res
+        .status(400)
+        .json({ success: false, error: "'enabled' must be boolean" });
+    }
+
+    const updatedTool = await setMcpToolEnabled(toolId, enabled);
+    if (enabled) {
+      mcps.addTool(updatedTool[0].mcpServerId, updatedTool[0].name);
+    } else {
+      mcps.removeTool(updatedTool[0].mcpServerId, updatedTool[0].name);
+    }
+
+    if (updatedTool.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, error: "MCP tool not found" });
+    }
+    return res.status(200).json({ success: true, tool: updatedTool[0] });
+  } catch (error) {
+    console.error("Failed to toggle MCP tool: ", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to update MCP tool." });
+  }
 });
 
 export default MCProuter;

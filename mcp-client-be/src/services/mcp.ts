@@ -66,6 +66,7 @@ export async function disconnectMCP(server: string) {
 
 export async function connectConfiguredMCPServers() {
   const servers = await getLiveMcpServer();
+  console.log("This is the live servers from DB : ", servers)
   await Promise.all(
     servers.map(async (server) => {
       try {
@@ -76,7 +77,7 @@ export async function connectConfiguredMCPServers() {
           {},
           server.cwd ?? undefined,
         );
-        mcps.addServer({ id: server.id, name: server.name });
+        mcps.addServer({ id: server.id, name: server.name, category: server.category });
         return { name: server.name, status: "connected" };
       } catch (error) {
         return {

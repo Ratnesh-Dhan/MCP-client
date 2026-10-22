@@ -70,22 +70,22 @@ export default function McpServerSelect({
       const res = await fetch("/api/mcp/pull-all-mcp-server");
       if (!res.ok) throw new Error("Unable to pull MCP servers.");
       const response = await res.json();
-      console.log("Servers: ", response.servers);
 
-      const servers: McpServer[] = [];
-      response.servers.forEach((ele: McpServer) => {
-        servers.push({
-          id: ele.id,
-          name: ele.name,
-          command: ele.command,
-          args: ele.args,
-          cwd: ele.cwd,
-          enabled: ele.enabled,
-          status: "connecting",
-          tools: ele.tools,
-        });
-      });
-      setMcpServers(servers);
+      // const servers: McpServer[] = [];
+      // response.servers.forEach((ele: McpServer) => {
+      //   servers.push({
+      //     id: ele.id,
+      //     name: ele.name,
+      //     command: ele.command,
+      //     args: ele.args,
+      //     cwd: ele.cwd,
+      //     enabled: ele.enabled,
+      //     status: "connecting",
+      //     tools: ele.tools,
+      //   });
+      // });
+      console.log("this is the server fromt he DB : ", response.servers)
+      setMcpServers(response.servers);
     } catch (error) {
       console.log(error);
       setMcpServers([]);
@@ -94,14 +94,12 @@ export default function McpServerSelect({
 
   useEffect(() => {
     pullMcpServers();
-
     const MCPStatusEvents = new EventSource(
       "/api/mcp/mcp-server-status-events",
     );
 
     MCPStatusEvents.addEventListener("mcp-status", (event) => {
       const status = JSON.parse(event.data);
-      console.log("MCP STATUS: ", status);
       setMcpServers((prev) =>
         prev.map((server) =>
           server.name === status.name

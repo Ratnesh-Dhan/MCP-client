@@ -35,6 +35,7 @@ export default function Settings() {
   const loadModelsPromise = useRef<Promise<void> | null>(null);
 
   const loadNetworks = useCallback(async () => {
+    console.log("whats the issue")
     if (networksLoaded) return;
     if (loadNetworksPromise.current) return loadNetworksPromise.current;
 
@@ -49,7 +50,7 @@ export default function Settings() {
         }
 
         const data = await res.json();
-
+        console.log({data})
         if (!network && data.length > 0) {
           setNetwork(data[0].url);
         }
@@ -153,18 +154,44 @@ export default function Settings() {
       setConnectingMcp(false);
     }
   };
+  // useEffect(() => {
+  //   setHydrated(true);
+  //   const savedNetwork = window.localStorage.getItem("modelNetwork");
+  //   console.log("firing useEffect ", savedNetwork);
+  //   const savedName = window.localStorage.getItem("modelName");
+  //   if (savedNetwork) setNetwork(`${savedNetwork}`);
+  //   if (savedName) {
+  //     setModel(`${savedName}`);
+  //     setModelsForNetwork(network, [{ model: savedName }]);
+  //     // setLoadingModels(true);
+  //   }
+  // }, []);
   useEffect(() => {
-    setHydrated(true);
-    const savedNetwork = window.localStorage.getItem("modelNetwork");
-    console.log("firing useEffect ", savedNetwork);
-    const savedName = window.localStorage.getItem("modelName");
-    if (savedNetwork) setNetwork(`${savedNetwork}`);
-    if (savedName) {
-      setModel(`${savedName}`);
-      setModelsForNetwork(network, [{ model: savedName }]);
-      // setLoadingModels(true);
+    async function loadSettings() {
+      try {
+        const res = await fetch("/api/settings"); // Use your actual GET endpoint
+        if (!res.ok) throw new Error("Failed to load settings");
+  
+        const data = await res.json();
+        console.log({data})
+  
+        if (data.settings.modelNetwork) {
+          setNetwork(data.settings.modelNetwork);
+        }
+  
+        if (data.settings.modelName) {
+          console.log("fuck", data.settings.modelName)
+          setModel(data.settings.modelName);
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      } finally {
+        setHydrated(true);
+      }
     }
-  }, []);
+  
+    loadSettings();
+  }, [setNetwork, setModel]);
   if (!hydrated) return null;
   return (
     <div className="flex-1 bg-zinc-50 dark:bg-zinc-950">

@@ -1,3 +1,4 @@
+import { isNotNull } from "drizzle-orm";
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 
 // Application settings
@@ -15,6 +16,7 @@ export const mcpServers = sqliteTable("mcp_servers", {
   command: text("command").notNull(),
   args: text("args", { mode: "json" }),
   cwd: text("cwd"),
+  category: text("category").notNull().default("main"),
 
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
 });

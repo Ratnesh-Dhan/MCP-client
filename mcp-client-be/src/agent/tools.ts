@@ -95,8 +95,10 @@ export async function getMainAgentTools() {
   // Getting enabled tools list to filter
   let enabledTools: Tool[] = [];
   for (const [id, server] of mcps.getServers()) {
+    if (server.category !== "main") continue;
     const mcpTools = (await listMCPTools(server.name)) as MCPTool[];
     if (server.tools === undefined) {
+      console.log("We got our culprit. ", server.tools);
       const tools = await getMcpTools(id);
       const toolNames = tools.map((tool) => tool.name);
       mcps.addTools(server.name, toolNames);

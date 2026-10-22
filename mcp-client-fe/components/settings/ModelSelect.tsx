@@ -27,30 +27,54 @@ export default function ModelSelect({
   onOpen,
 }: ModelSelectProps) {
 
-  const handlenew = async(value: string)=> {
-    try {
-      console.log({value})
-      const response = await  fetch("/api/settings/addModel", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ modelNetwork: network,modelName: value }),
-        });
-        const res = await response.json();
-        console.log(res["message"][0]['modelName'])
-        window.localStorage.setItem("modelNetwork", res["message"][0]['modelNetwork'])
-        window.localStorage.setItem("modelName", res["message"][0]["modelName"])
-        onChange(res["message"][0]['modelName'])
-    }
-    catch(error) {
-      console.log("fuck ", error)
-    }
-  }
+  // const handlenew = async(value: string)=> {
+  //   try {
+  //     console.log("Hitting model update on DB")
+  //     console.log({value})
+  //     const response = await  fetch("/api/settings/addModel", {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ modelNetwork: network,modelName: value }),
+  //       });
+  //       const res = await response.json();
+  //       console.log(res["message"][0]['modelName']);
+  //       window.localStorage.setItem("modelNetwork", res["message"][0]['modelNetwork'])
+  //       window.localStorage.setItem("modelName", res["message"][0]["modelName"])
+  //       onChange(res["message"][0]['modelName'])
+  //   }
+  //   catch(error) {
+  //     console.log("Error on set Model ", error)
+  //   }
+  // }
 
-  const fuck = ()=> {
-    console.log("FUck this is models : ", models)
-  }
+  const handlenew = async (value: string) => {
+    try {
+      const response = await fetch("/api/settings/addModel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          modelNetwork: network,
+          modelName: value,
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Failed to save model: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      const savedModel = data.message[0].modelName;
+  
+      onChange(savedModel);
+    } catch (error) {
+      console.error("Error saving model:", error);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <label htmlFor="model" className={fieldLabelClassName}>
@@ -70,7 +94,10 @@ export default function ModelSelect({
         >
           {loading ? (
     <option value="">Loading models...</option>
-  ) : !value && models.length === 0 ? (
+  ) : value && models.length === 0? (
+    <option value={value}>{value}</option>
+  ) :
+  !value && models.length === 0 ? (
     <option value="">No models available</option>
   ) : (
     models.map((model) => (

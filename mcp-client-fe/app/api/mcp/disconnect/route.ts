@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { server } = await req.json();
+    const { server, id } = await req.json();
     const res = await fetch("http://localhost:4000/api/mcp/disconnect", {
       method: "POST",
       headers: {
@@ -10,13 +10,14 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         name: server,
+        id: id,
       }),
     });
     if (!res.ok)
       throw new Error("Error while disconnecting MCP serer: ", server);
     const result = await res.json();
 
-    return NextResponse.json({ success: result.success });
+    return NextResponse.json({ result: result });
   } catch (error) {
     console.error("MCP Disconnection Error: ", error);
     return NextResponse.json(

@@ -22,7 +22,7 @@ class MCPManager {
     if (this.connections.has(name)) {
       return this.connections.get(name)!.client;
     }
-
+    console.log("Before connecting.");
     mcpEvents.emit("status", {
       name,
       status: "connecting",
@@ -66,6 +66,7 @@ class MCPManager {
         transport,
       });
 
+      console.log("After connecting.");
       mcpEvents.emit("status", {
         name,
         status: "connected",

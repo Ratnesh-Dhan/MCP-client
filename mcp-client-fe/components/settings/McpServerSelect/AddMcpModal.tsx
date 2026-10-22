@@ -26,6 +26,7 @@ export default function AddMcpModal({
   const [command, setCommand] = useState<string>("");
   const [args, setArgs] = useState<string>("");
   const [cwd, setCwd] = useState<string>("");
+  const [category, setCategory] = useState<string>("main");
   const [loading, setLoading] = useState<boolean>(false);
 
   const submittingRef = useRef(false);
@@ -44,7 +45,7 @@ export default function AddMcpModal({
       const argy: string[] = args.split(",").map((arg) => arg.trim());
       console.log("argy: ", argy);
 
-      const res = await fetch("/api/mcp/connect", {
+      const res = await fetch("/api/mcp/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,6 +55,7 @@ export default function AddMcpModal({
           command: command.trim(),
           args: argy,
           cwd: cwd,
+          category: category,
         }),
       });
       const response = await res.json();
@@ -65,7 +67,9 @@ export default function AddMcpModal({
           args: argy,
           cwd: cwd,
           enabled: true,
+          status: "connecting",
           tools: response.tools,
+          category: category
         };
 
         setMcpServers((prevServers) => {
@@ -87,6 +91,7 @@ export default function AddMcpModal({
         setCommand("");
         setArgs("");
         setCwd("");
+        setCategory("main");
       } else {
         throw new Error("DB operation failed.");
       }
@@ -194,6 +199,18 @@ export default function AddMcpModal({
               value={cwd}
               onChange={(e) => setCwd(e.target.value)}
               placeholder="/path/to/server"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              Category
+              <span className="ml-1 text-zinc-400">(MCP server for main/sub graph)</span>
+            </label>
+            <input
+              value={cwd}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="main"
               className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
             />
           </div>
