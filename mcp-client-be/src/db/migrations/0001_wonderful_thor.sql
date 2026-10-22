@@ -1,1 +1,0 @@
-ALTER TABLE `mcp_servers` ADD `enabled` integer DEFAULT true NOT NULL;
