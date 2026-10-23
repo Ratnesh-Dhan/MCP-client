@@ -24,7 +24,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, command, args, cwd, category } = await req.json();
+    const { name, command, args, cwd, category, apiKey } = await req.json();
     const res = await fetch("http://localhost:4000/api/mcp/add", {
       method: "POST",
       headers: {
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
         args: args,
         cwd: cwd,
         category: category,
+        apiKey: apiKey,
       }),
     });
     const result = await res.json();

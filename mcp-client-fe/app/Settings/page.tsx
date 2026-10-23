@@ -35,7 +35,7 @@ export default function Settings() {
   const loadModelsPromise = useRef<Promise<void> | null>(null);
 
   const loadNetworks = useCallback(async () => {
-    console.log("whats the issue")
+    console.log("whats the issue");
     if (networksLoaded) return;
     if (loadNetworksPromise.current) return loadNetworksPromise.current;
 
@@ -50,7 +50,7 @@ export default function Settings() {
         }
 
         const data = await res.json();
-        console.log({data})
+        console.log({ data });
         if (!network && data.length > 0) {
           setNetwork(data[0].url);
         }
@@ -171,16 +171,16 @@ export default function Settings() {
       try {
         const res = await fetch("/api/settings"); // Use your actual GET endpoint
         if (!res.ok) throw new Error("Failed to load settings");
-  
+
         const data = await res.json();
-        console.log({data})
-  
-        if (data.settings.modelNetwork) {
+        console.log({ data });
+
+        if (data?.settings?.modelNetwork) {
           setNetwork(data.settings.modelNetwork);
         }
-  
-        if (data.settings.modelName) {
-          console.log("fuck", data.settings.modelName)
+
+        if (data?.settings?.modelName) {
+          console.log("fuck", data.settings.modelName);
           setModel(data.settings.modelName);
         }
       } catch (error) {
@@ -189,7 +189,7 @@ export default function Settings() {
         setHydrated(true);
       }
     }
-  
+
     loadSettings();
   }, [setNetwork, setModel]);
   if (!hydrated) return null;

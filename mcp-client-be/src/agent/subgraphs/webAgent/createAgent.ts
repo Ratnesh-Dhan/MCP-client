@@ -16,16 +16,16 @@ export const createWebSearchAgent = async (model: string, network: string) => {
   if (!tavilyApiKey) throw new Error("TAVILY_API_KEY is not configured.");
   console.log("Tavily shits ends");
 
-  await connectMCP(
-    "tavily",
-    "pnpm",
-    ["dlx", "tavily-mcp@latest"],
-    { TAVILY_API_KEY: tavilyApiKey },
-    undefined,
-    "1.0.0",
-  );
+  // await connectMCP(
+  //   "tavily",
+  //   "pnpm",
+  //   ["dlx", "tavily-mcp@latest"],
+  //   { TAVILY_API_KEY: tavilyApiKey },
+  //   undefined,
+  //   "1.0.0",
+  // );
   const tools = await getAgentTools("tavily");
-
+  console.log("Tavily tools : ", tools);
   const webSearchAgent = createDeepAgent({
     model: llm,
     tools: tools,

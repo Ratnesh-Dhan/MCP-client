@@ -20,7 +20,8 @@ import { mcps } from "../lib/mcpManager.js";
 import { DbMCPServer, DbTool } from "../types/allTypes.js";
 import { mcpEvents } from "../lib/mcpEvents.js";
 import { mcpManager } from "../lib/manager.js";
-import { success } from "zod";
+import { z } from "zod";
+import { McpServerSchema } from "../db/zodSchema.js";
 
 const MCProuter = Router();
 
@@ -39,22 +40,45 @@ MCProuter.post("/connect_old", async (req, res) => {
 });
 
 // Get user settings (model network and model name)
-MCProuter.get("/user-settings",async (req, res)=>{
+MCProuter.get("/user-settings", async (req, res) => {
   try {
     const settings = await getUserSettings();
-    console.log("User settigns: ", settings[0])
-    res.status(200).json({settings: settings[0]})
-  } catch(error){
+    console.log("User settigns: ", settings[0]);
+    res.status(200).json({ settings: settings[0] });
+  } catch (error) {
     console.error(error);
-    res.status(500).json({error: error instanceof Error? error.message : "Error while getting user settings from DB."})
+    res.status(500).json({
+      error:
+        error instanceof Error
+          ? error.message
+          : "Error while getting user settings from DB.",
+    });
   }
-})
+});
 
 // Connect MCP server on new ADD
 MCProuter.post("/add", async (req, res) => {
   try {
-    const { name, command, args, cwd, category } = req.body;
-    const client = await connectMCP(name, command, args ?? [], {}, cwd);
+    const result = McpServerSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        error: "Invalid MCP server configuration",
+        details: z.flattenError(result.error),
+      });
+    }
+    const { name, command, args, cwd, category, apiKey } = result.data;
+    // const env: Record<string, string> = {};
+    // for (const [name, value] of Object.entries(apiKey ?? {})) {
+    //   if (typeof value === "string" && value.trim()) {
+    //     env[name] = value.trim();
+    //   }
+    // }
+    const env = Object.fromEntries(
+      Object.entries(apiKey)
+        .filter(([, value]) => value.trim().length > 0)
+        .map(([key, value]) => [key, value.trim()]),
+    );
+    const client = await connectMCP(name, command, args ?? [], env, cwd);
     console.log("Client connected.");
     const rawTools = await listMCPTools(name);
 
@@ -66,6 +90,7 @@ MCProuter.post("/add", async (req, res) => {
         cwd: cwd ?? "",
         enabled: true,
         category: category,
+        apiKey: apiKey ?? {},
       };
       const [db_result] = await addMcpServer(data);
       const tools: DbTool[] = [];
@@ -153,7 +178,7 @@ MCProuter.post("/connect", async (req, res) => {
       cwd ?? undefined,
     );
     const result = await toggleMCPServer(id, true);
-    mcps.addServer({id: id, name: name, category: category})
+    mcps.addServer({ id: id, name: name, category: category });
     console.log(`MCP server id connected. \n ${result}`);
     res.json({ success: true });
   } catch (error) {
@@ -171,6 +196,11 @@ MCProuter.get("/get-all", async (req, res) => {
     for (const server of servers) {
       const tools: DbTool[] = await getMcpTools(server.id);
       server.tools = tools;
+    }
+    for (const server of servers) {
+      console.log(
+        `Server: ${server.name} connected: ${mcpManager.isConnected(server.name)}`,
+      );
     }
     const result = servers.map((server) => ({
       ...server,

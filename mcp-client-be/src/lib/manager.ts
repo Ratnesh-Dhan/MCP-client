@@ -107,6 +107,7 @@ class MCPManager {
   async disconnectAll() {
     for (const name of this.connections.keys()) {
       await this.disconnect(name);
+      console.log(`${name} Disconnected.`);
     }
   }
 }

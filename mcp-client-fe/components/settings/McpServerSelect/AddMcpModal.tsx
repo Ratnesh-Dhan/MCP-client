@@ -28,6 +28,9 @@ export default function AddMcpModal({
   const [cwd, setCwd] = useState<string>("");
   const [category, setCategory] = useState<string>("main");
   const [loading, setLoading] = useState<boolean>(false);
+  const [apiKeyRows, setApiKeyRows] = useState([
+    { id: crypto.randomUUID(), name: "", value: "" },
+  ]);
 
   const submittingRef = useRef(false);
 
@@ -42,8 +45,12 @@ export default function AddMcpModal({
     submittingRef.current = true;
     setLoading(true);
     try {
+      const apiKey = Object.fromEntries(
+        apiKeyRows
+          .filter((row) => row.name.trim() && row.value.trim())
+          .map((row) => [row.name.trim(), row.value.trim()]),
+      );
       const argy: string[] = args.split(",").map((arg) => arg.trim());
-      console.log("argy: ", argy);
 
       const res = await fetch("/api/mcp/add", {
         method: "POST",
@@ -56,6 +63,7 @@ export default function AddMcpModal({
           args: argy,
           cwd: cwd,
           category: category,
+          apiKey: apiKey,
         }),
       });
       const response = await res.json();
@@ -67,9 +75,9 @@ export default function AddMcpModal({
           args: argy,
           cwd: cwd,
           enabled: true,
-          status: "connecting",
+          status: "connected",
           tools: response.tools,
-          category: category
+          category: category,
         };
 
         setMcpServers((prevServers) => {
@@ -103,6 +111,27 @@ export default function AddMcpModal({
       onClose();
     }
   }, [onClose, setMcpServers, name, command, args, cwd]);
+
+  const addApiKeyRow = () => {
+    setApiKeyRows((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), name: "", value: "" },
+    ]);
+  };
+
+  const updateApiKeyRow = (
+    id: string,
+    field: "name" | "value",
+    value: string,
+  ) => {
+    setApiKeyRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
+    );
+  };
+
+  const removeApiKeyRow = (id: string) => {
+    setApiKeyRows((prev) => prev.filter((row) => row.id !== id));
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -205,14 +234,65 @@ export default function AddMcpModal({
           <div>
             <label className="mb-1.5 block text-sm font-medium">
               Category
-              <span className="ml-1 text-zinc-400">(MCP server for main/sub graph)</span>
+              <span className="ml-1 text-zinc-400">
+                (MCP server for main/sub graph)
+              </span>
             </label>
             <input
-              value={cwd}
+              value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="main"
               className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
             />
+          </div>
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="mb-1.5 block text-sm font-medium">
+                Api Key
+                <span className="ml-1 text-zinc-400">(optional)</span>
+              </label>
+              <button
+                type="button"
+                onClick={addApiKeyRow}
+                className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              >
+                + Add
+              </button>
+            </div>
+            <div className="space-y-3">
+              {apiKeyRows.map((row) => (
+                <div key={row.id} className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <input
+                      value={row.name}
+                      onChange={(e) =>
+                        updateApiKeyRow(row.id, "name", e.target.value)
+                      }
+                      placeholder="Environment variable (e.g. TAVILY_API_KEY)"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                    />
+                    <input
+                      type="password"
+                      value={row.value}
+                      onChange={(e) =>
+                        updateApiKeyRow(row.id, "value", e.target.value)
+                      }
+                      placeholder="API key value"
+                      autoComplete="off"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeApiKeyRow(row.id)}
+                    aria-label="Remove API key"
+                    className="rounded-md px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

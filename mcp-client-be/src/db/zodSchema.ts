@@ -5,8 +5,13 @@ export const McpServerSchema = z.object({
   command: z.string().min(1),
   args: z.array(z.string()).optional(),
   cwd: z.string().optional(),
-  category: z.string().optional(),
+  category: z.string(),
+
+  // Multiple optional environment variables
+  apiKey: z.record(z.string(), z.string()).optional().default({}),
 });
+
+export type McpServerInput = z.infer<typeof McpServerSchema>;
 
 export const ModelNetwork = z.object({
   modelNetwork: z

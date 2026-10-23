@@ -17,6 +17,7 @@ export const mcpServers = sqliteTable("mcp_servers", {
   args: text("args", { mode: "json" }),
   cwd: text("cwd"),
   category: text("category").notNull().default("main"),
+  apiKey: text("api_key", { mode: "json" }).$type<Record<string, string>>(),
 
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
 });
