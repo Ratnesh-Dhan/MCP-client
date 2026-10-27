@@ -1,6 +1,14 @@
 import { Dispatch, SetStateAction } from "react";
 
-export type MessageStatus = "thinking" | "generating" | "done" | "aborted";
+export type MessageStatus = "generating" | "done" | "aborted" | "error";
+export type AgentActivity =
+  | { type: "thinking" }
+  | { type: "summarizing" }
+  | {
+      type: "tool";
+      name: string;
+      status: "running" | "done" | "error";
+    };
 
 export type Message = {
   id: string;
@@ -17,11 +25,15 @@ export type Chat = {
 
 export interface ChatMessagesProps {
   messages: Message[];
+  activity?: AgentActivity | null;
+  internalSummary?: string;
 }
 
 export type TextBoxProps = {
   setChat: Dispatch<SetStateAction<ChatMessagesProps>>;
   chat: ChatMessagesProps;
+  setActivity: Dispatch<SetStateAction<AgentActivity | null>>;
+  setInternalSummary: Dispatch<SetStateAction<string>>;
 };
 
 export type OllamaModel = {
@@ -66,3 +78,13 @@ export type McpServer = {
   tools?: McpTool[];
   category?: string;
 };
+
+export type StreamChunk =
+  | { type: "thinking"; content: string }
+  | { type: "content"; content: string }
+  | { type: "summary_start" }
+  | { type: "summary_end"; summary: string }
+  | { type: "summary_error"; message: string }
+  | { type: "tool_start"; name: string; args?: unknown }
+  | { type: "tool_end"; name: string; output?: string }
+  | { type: "error"; message: string };

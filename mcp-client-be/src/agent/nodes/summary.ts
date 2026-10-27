@@ -1,3 +1,5 @@
+import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
+import type { RunnableConfig } from "@langchain/core/runnables";
 import { ChatOllama } from "@langchain/ollama";
 import { getCurrentNetwork } from "../../services/currentNetworkDB.js";
 import {
@@ -71,6 +73,7 @@ const summarizeMessage = async (
 export const summarizeNode = async (
   state: typeof AgentState.State,
   summarizerModel: ChatOllama,
+  config: RunnableConfig,
 ) => {
   const humanMessageIndices = getHumanMessageIndices(state.messages);
 
@@ -95,15 +98,29 @@ export const summarizeNode = async (
     return {};
   }
   console.log("[SUMMARY] Summarizing messages");
-  const summary = await summarizeMessage(
-    summaryMessages,
-    state.summary,
-    summarizerModel,
-  );
-  console.log("[SUMMARY] Update summary:");
-  console.log(summary);
-  return {
-    summary: summary,
-    summarizedLastHumanMessageCount: humanMessageIndices.length - 2,
-  };
+  await dispatchCustomEvent("summary_start", {}, config);
+  try {
+    const summary = await summarizeMessage(
+      summaryMessages,
+      state.summary,
+      summarizerModel,
+    );
+    await dispatchCustomEvent("summary_end", { summary }, config);
+    console.log("[SUMMARY] Update summary:");
+    console.log(summary);
+    return {
+      summary: summary,
+      summarizedLastHumanMessageCount: humanMessageIndices.length - 2,
+    };
+  } catch (error) {
+    await dispatchCustomEvent(
+      "summary_error",
+      {
+        message:
+          error instanceof Error ? error.message : "Summarization failed",
+      },
+      config,
+    );
+    throw error;
+  }
 };

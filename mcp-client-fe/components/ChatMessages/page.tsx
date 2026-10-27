@@ -3,8 +3,13 @@ import ReactMarkDown from "react-markdown";
 import { ChatMessagesProps } from "@/types/allTypes";
 import React, { useEffect, useLayoutEffect, useRef } from "react";
 import ThinkingBlock from "./ThinkingBlock";
+import AgentActivityIndicator from "./AgentActivityIndicator";
 
-export default function ChatMessages({ messages }: ChatMessagesProps) {
+export default function ChatMessages({
+  messages,
+  activity = null,
+  internalSummary,
+}: ChatMessagesProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isPinnedToBottomRef = useRef(true);
@@ -87,6 +92,7 @@ export default function ChatMessages({ messages }: ChatMessagesProps) {
             </div>
           </div>
         ))}
+        <AgentActivityIndicator activity={activity} />
         <div ref={bottomRef} className="h-px w-full shrink-0" />
       </div>
     </div>

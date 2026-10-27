@@ -3,7 +3,10 @@ export type StreamChunk =
   | { type: "content"; content: string }
   | { type: "tool_start"; name: string; args: any }
   | { type: "tool_end"; name: string; output: string }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  | { type: "summary_start" }
+  | { type: "summary_end"; summary: string }
+  | { type: "summary_error"; message: string };
 
 export type typeRunAgentStream = {
   model: string;

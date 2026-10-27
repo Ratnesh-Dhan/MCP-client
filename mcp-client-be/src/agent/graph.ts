@@ -123,7 +123,9 @@ export async function buildAgentGraph({ checkpointer }: buildAgentGraphType) {
   return (
     new StateGraph(AgentState)
       .addNode("maybeSummarize", (state) => state)
-      .addNode("summarize", (state) => summarizeNode(state, summarizerModel))
+      .addNode("summarize", (state, config) =>
+        summarizeNode(state, summarizerModel, config),
+      )
       .addNode("llm", llmNode)
       .addNode("tools", mcpToolNode.invoke.bind(mcpToolNode))
       // .addNode("tools", (state) => mcpToolNode.invoke(state))

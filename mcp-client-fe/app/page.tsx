@@ -2,7 +2,7 @@
 import ChatMessages from "@/components/ChatMessages/page";
 import LangGraphTextBox from "@/components/LangGraphTextBox/page";
 // import TextBox from "@/components/TextBox/page";
-import { ChatMessagesProps } from "@/types/allTypes";
+import { AgentActivity, ChatMessagesProps } from "@/types/allTypes";
 import { Bot, Sparkles, Zap } from "lucide-react";
 import { useState } from "react";
 
@@ -10,10 +10,9 @@ export default function Home() {
   const [chat, setChat] = useState<ChatMessagesProps>({
     messages: [],
   });
+  const [activity, setActivity] = useState<AgentActivity | null>(null);
+  const [internalSummary, setInternalSummary] = useState("");
 
-  // useEffect(() => {
-  //   console.log({ chat });
-  // }, [chat]);
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top_left,#d9f99d_0,transparent_28%),linear-gradient(135deg,#f8fafc_0%,#eef2ff_45%,#ecfeff_100%)] font-sans text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,rgba(132,204,22,0.18)_0,transparent_26%),linear-gradient(135deg,#020617_0%,#0f172a_48%,#082f49_100%)] dark:text-zinc-50">
       <main className="mx-auto flex h-[calc(100vh-73px)] min-h-0 w-full max-w-6xl flex-1 flex-col px-4 pb-36 pt-6 sm:px-6 lg:px-8">
@@ -36,23 +35,36 @@ export default function Home() {
               </p>
             </div>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-slate-600 dark:text-zinc-300">
-              {["Inspect server tools", "Draft a workflow", "Summarize results"].map(
-                (item) => (
-                  <div
-                    key={item}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/70 px-4 py-2 shadow-sm shadow-slate-200/70 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:shadow-none"
-                  >
-                    <Zap size={14} className="text-amber-500" />
-                    {item}
-                  </div>
-                ),
-              )}
+              {[
+                "Inspect server tools",
+                "Draft a workflow",
+                "Summarize results",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/70 px-4 py-2 shadow-sm shadow-slate-200/70 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:shadow-none"
+                >
+                  <Zap size={14} className="text-amber-500" />
+                  {item}
+                </div>
+              ))}
             </div>
           </section>
         )}
-        {chat.messages.length > 0 && <ChatMessages messages={chat.messages} />}
+        {chat.messages.length > 0 && (
+          <ChatMessages
+            messages={chat.messages}
+            activity={activity}
+            internalSummary={internalSummary}
+          />
+        )}
         {/* <TextBox setChat={setChat} chat={chat} /> */}
-        <LangGraphTextBox setChat={setChat} chat={chat} />
+        <LangGraphTextBox
+          setChat={setChat}
+          chat={chat}
+          setActivity={setActivity}
+          setInternalSummary={setInternalSummary}
+        />
       </main>
     </div>
   );

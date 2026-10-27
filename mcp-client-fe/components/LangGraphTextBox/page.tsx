@@ -2,10 +2,20 @@
 // https://medium.com/@jonigl/using-ollama-with-typescript-a-simple-guide-20f5e8d3827c
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, CircleStop } from "lucide-react";
-import { Message, MessageStatus, TextBoxProps } from "@/types/allTypes";
+import {
+  AgentActivity,
+  Message,
+  StreamChunk,
+  TextBoxProps,
+} from "@/types/allTypes";
 import { useSettingsStore } from "@/store/settings";
 
-export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
+export default function LangGraphTextBox({
+  setChat,
+  chat,
+  setActivity,
+  setInternalSummary,
+}: TextBoxProps) {
   const abortController = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -42,36 +52,104 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
   };
 
   const sendMessage = async () => {
-    if (!text?.trim()) return;
+    if (!text?.trim() || enableAbort) return;
 
     // abort controller setting up
     const controller = new AbortController();
     abortController.current = controller;
+
+    const userText = text.trim();
+    const userMessage = messageBuilder(userText, true);
+    const assistantId = crypto.randomUUID();
+
+    let assistantText: string = "";
+    let thinkingText: string = "";
+
     // enable abort state
     setEnableAbort(true);
-    const id = crypto.randomUUID();
+    setActivity(null);
+    setActiveTool(null);
 
+    const assistantMessage: Message = {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      thinking: "",
+      status: "generating",
+    };
+
+    setChat((prev) => ({
+      ...prev,
+      messages: [...prev.messages, userMessage, assistantMessage],
+    }));
+    setText("");
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "0px";
+    }
+
+    const updateAssistant = (updates: Partial<Message>) => {
+      setChat((prev) => ({
+        ...prev,
+        messages: prev.messages.map((message) =>
+          message.id === assistantId ? { ...message, ...updates } : message,
+        ),
+      }));
+    };
+
+    const handleChunk = (chunk: StreamChunk) => {
+      switch (chunk.type) {
+        case "thinking":
+          thinkingText += chunk.content;
+          setActivity({ type: "thinking" });
+          updateAssistant({ thinking: thinkingText, status: "generating" });
+          break;
+
+        case "content":
+          assistantText += chunk.content;
+          setActivity(null);
+          updateAssistant({ content: assistantText, status: "generating" });
+          break;
+
+        case "summary_end":
+          setInternalSummary(chunk.summary);
+          setActivity(null);
+          break;
+
+        case "summary_start":
+          setActivity({ type: "summarizing" });
+          break;
+
+        case "summary_error":
+          setActivity(null);
+          console.error("Summary error: ", chunk.message);
+          break;
+
+        case "tool_start":
+          setActiveTool(`Using tool: ${chunk.name}`);
+          setActivity({ type: "tool", name: chunk.name, status: "running" });
+          break;
+
+        case "tool_end":
+          setActivity(null);
+          setActiveTool(null);
+          break;
+
+        case "error":
+          setActiveTool(null);
+          setActivity(null);
+          console.error("Agent error: ", chunk.message);
+          updateAssistant({ status: "error" });
+      }
+    };
     try {
-      const userMessage = messageBuilder(text, true);
-
-      // Build the full conversation
-      const messages = [...chat.messages, userMessage];
-      const sendableMessages = messages.map(({ id, role, content }) => ({
+      // Include new user message in the request .
+      const conversation = [...chat.messages, userMessage];
+      const sendableMessages = conversation.map(({ id, role, content }) => ({
         id,
         role,
         content,
       }));
-
-      // Update the UI immediately
-      setChat((prev) => ({
-        ...prev,
-        messages,
-      }));
-      setText("");
-
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "0px";
-      }
 
       const res = await fetch("/api/agent", {
         method: "POST",
@@ -85,103 +163,69 @@ export default function LangGraphTextBox({ setChat, chat }: TextBoxProps) {
         }),
         signal: controller.signal,
       });
+      if (!res.ok) {
+        throw new Error(`Agent request failed: HTTP ${res.status}`);
+      }
 
-      if (!res.body) return;
+      if (!res.body) {
+        throw new Error("Agent response has no readable stream.");
+      }
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-
-      let assistantText: string = "";
-      let thinkingText: string = "";
       let buffer = "";
+
+      const processFrame = (frame: string) => {
+        const dataLines = frame
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).replace(/^ /, ""));
+
+        if (dataLines.length === 0) return;
+
+        const rawJson = dataLines.join("\n").trim();
+        if (!rawJson || rawJson === "[DONE]") return;
+
+        try {
+          const chunk = JSON.parse(rawJson) as StreamChunk;
+          handleChunk(chunk);
+        } catch (error) {
+          console.error("Invalid stream event: ", rawJson, error);
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() ?? "";
 
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data: ")) continue;
+        // SSE frames are separated by a blank line.
+        const frames = buffer.split(/\r?\n\r?\n/);
+        buffer = frames.pop() ?? "";
 
-          // const rawJson = trimmed.replace("data: ", "").trim();
-          const rawJson = trimmed.slice(6).trim();
-          if (!rawJson) continue;
-
-          try {
-            let status: MessageStatus = "thinking";
-            const data = JSON.parse(rawJson);
-            switch (data.type) {
-              case "thinking":
-                thinkingText += data.content;
-                status = "thinking";
-                break;
-              case "content":
-                assistantText += data.content;
-                status = "generating";
-                break;
-              case "tool_start":
-                setActiveTool(`Using tool: ${data.name}`);
-                break;
-              case "tool_end":
-                setActiveTool(null);
-                break;
-              case "error":
-                console.log("Agent error:", data.message);
-                break;
-            }
-            setChat((prev) => {
-              const updatedMessages = [...prev.messages];
-              const lastIndex = updatedMessages.length - 1;
-              const lastMessage = updatedMessages[lastIndex];
-
-              if (lastMessage?.id === id) {
-                updatedMessages[lastIndex] = {
-                  ...lastMessage,
-                  content: assistantText,
-                  thinking: thinkingText,
-                  status: status,
-                };
-              } else {
-                updatedMessages.push({
-                  id,
-                  role: "assistant",
-                  content: assistantText,
-                  thinking: thinkingText,
-                  status: status,
-                });
-              }
-
-              return { ...prev, messages: updatedMessages };
-            });
-          } catch (e) {
-            console.error("Failed to parse SSE JSON chunk: ", rawJson, e);
-          }
+        for (const frame of frames) {
+          processFrame(frame);
         }
       }
+      // Flushing any remaining decoder bytes and process a final frame.
+      buffer += decoder.decode();
+      if (buffer.trim()) {
+        processFrame(buffer);
+      }
+      updateAssistant({ status: "done" });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         console.log("Generation stopped");
-        setChat((prev) => ({
-          ...prev,
-          messages: prev.messages.map((message) =>
-            message.id === id
-              ? {
-                  ...message,
-                  status: "aborted",
-                }
-              : message,
-          ),
-        }));
-        return;
+        updateAssistant({ status: "aborted" });
+      } else {
+        console.error("Generation Error : ", err);
+        updateAssistant({ status: "error" });
       }
-      console.error("Generation Error : ", err);
     } finally {
       setEnableAbort(false);
       setActiveTool(null);
-
+      setActivity(null);
       if (abortController.current === controller) {
         abortController.current = null;
       }

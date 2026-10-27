@@ -1,11 +1,10 @@
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
+import { HumanMessage } from "@langchain/core/messages";
 import {
   StreamChunk,
   ToolExecution,
   typeRunAgentStream,
 } from "../types/agentTypes.js";
 import { getAgentGraph } from "../agent/graphCache.js";
-import { networkManager } from "../lib/networkManager.js";
 
 export async function runAgentStream({
   messages,
@@ -24,11 +23,6 @@ export async function runAgentStream({
       // ✅ Pass the raw incoming state variables. LangGraph handles history compilation.
       const eventStream = graph.streamEvents(
         {
-          // messages: messages.map((m) =>
-          //   m.role === "user"
-          //     ? new HumanMessage(m.content)
-          //     : new AIMessage(m.content),
-          // ),
           messages: [new HumanMessage(lastUserMessage)],
         },
         {
@@ -43,8 +37,29 @@ export async function runAgentStream({
       for await (const event of eventStream) {
         if (signal?.aborted) throw new Error("Agent aborted.");
 
+        // Summary lifecycle events
+        if (event.event === "on_custom_event") {
+          if (event.name === "summary_start") {
+            yield { type: "summary_start" };
+          } else if (event.name === "summary_end") {
+            yield {
+              type: "summary_end",
+              summary: event.data?.summary,
+            };
+          } else if (event.name === "summary_error") {
+            yield {
+              type: "summary_error",
+              message: event.data?.message,
+            };
+          }
+          continue;
+        }
+
         // Stream Tokens (Thinking vs Final Text)
-        if (event.event === "on_chat_model_stream") {
+        if (
+          event.event === "on_chat_model_stream" &&
+          event.metadata?.langgraph_node === "llm"
+        ) {
           const chunk = event.data?.chunk;
 
           const thinkingText =
