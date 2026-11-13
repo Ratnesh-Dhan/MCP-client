@@ -4,6 +4,11 @@ import { z } from "zod";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import { mcps } from "../lib/mcpManager.js";
 import { getMcpTools } from "../db/queries.js";
+import { interrupt } from "@langchain/langgraph";
+
+// Temporarily we will use this approval list. Later i will implement it in db so i can switch approval in FrontEnd MCP settings.
+const APPROVAL_REQUIRED_TOOLS = ["telegramMessageBot"];
+// Temporarily we will use this approval list. Later i will implement it in db so i can switch approval in FrontEnd MCP settings.
 
 type MCPTool = {
   name: string;
@@ -130,8 +135,21 @@ export async function getMainAgentTools() {
     tool(
       async (args) => {
         console.log(`MCP TOOL: ${mcpTool.name}`);
+        // INTRRUPTS
+        if (APPROVAL_REQUIRED_TOOLS.includes(mcpTool.name)) {
+          const decision = interrupt({
+            type: "tool_approval",
+            server: mcpTool.serverName,
+            tool: mcpTool.name,
+            args,
+          });
+          if (!decision?.approved) {
+            return `User rejected execution of MCP tool "${mcpTool.name}".`;
+          }
+        }
+        // INTRRUPTS
 
-        console.log("MCP ARGS:", args);
+        // console.log("MCP ARGS:", args);
         try {
           const result = await callMCPTool(
             mcpTool.serverName,
