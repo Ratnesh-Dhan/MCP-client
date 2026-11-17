@@ -2,6 +2,7 @@ import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import type { ToolExecution } from "../state.js";
 import type { AgentState } from "../state.js";
+import { isGraphInterrupt } from "@langchain/langgraph";
 
 export class MCPToolNode {
   private readonly tools: Map<string, StructuredToolInterface>;
@@ -57,7 +58,7 @@ export class MCPToolNode {
               success: false,
               error,
             } satisfies ToolExecution,
-            planRetryCount: 0
+            planRetryCount: 0,
           };
         }
         try {
@@ -81,6 +82,11 @@ export class MCPToolNode {
             planRetryCount: 0,
           };
         } catch (error) {
+          // Checking if there is interrupt or error.
+          if (isGraphInterrupt(error)) {
+            // We will let LangGraph handle interrupts. while other errors will be converted into ToolMessage of failure.
+            throw error;
+          }
           const errorMessage =
             error instanceof Error ? error.message : String(error);
           console.error(`LANGGRAPH: Tool "${toolCall.name}" failed.`, error);
